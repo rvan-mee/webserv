@@ -19,6 +19,7 @@ SRC_DIR				:=	src
 CGI_DIR				:=	cgi
 CONFIG_DIR			:=	config
 SOCKET_DIR			:=	socket
+HTTP_DIR			:=	http
 OBJ_DIR				:=	obj
 
 ################################################################################
@@ -33,12 +34,15 @@ CONFIG_SRCS			:=	Config.cpp			\
 						Server.cpp			\
 						Utils.cpp
 
+HTTP_SRCS			:=
+
 SOCKET_SRCS			:=
 
 SRCS				:= $(MAIN)
 SRCS				+= $(addprefix $(CGI_DIR)/, $(CGI_SRCS))
 SRCS				+= $(addprefix $(CONFIG_DIR)/, $(CONFIG_SRCS))
 SRCS				+= $(addprefix $(SOCKET_DIR)/, $(SOCKET_SRCS))
+SRCS				+= $(addprefix $(HTTP_DIR)/, $(HTTP_SRCS))
 
 SRCP				:= $(addprefix $(SRC_DIR)/, $(SRCS))
 
