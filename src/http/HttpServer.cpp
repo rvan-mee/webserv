@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/27 11:10:47 by cpost         ########   odam.nl         */
+/*   Updated: 2023/07/27 11:13:32 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,9 @@ void	HttpServer::initServer( Config &config )
 		throw ( std::runtime_error( "Failed to start listening" )) ;
 
 	/* TODO: Work from here. Create a loop that accepts connections and handles them
-	according to the HTTP protocol. Probably have to use Kqueue for this */
+	according to the HTTP protocol. Probably have to use Kqueue for this.
+	see: https://dev.to/frevib/a-tcp-server-with-kqueue-527
+	 */
 }
 
 /**
