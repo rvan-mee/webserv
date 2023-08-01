@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/27 11:02:29 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/01 15:16:12 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,13 +17,16 @@
 
 #include <Config.hpp>
 #include <netinet/in.h> // sockaddr_in
+#include <sys/event.h> // kqueue
 
 class HttpServer
 {
 private:
-	
-	int			serverSocket;
-	sockaddr_in address;
+
+	int				serverSocket;
+	sockaddr_in 	address;
+	int				kqueueFd;
+	struct kevent	event[ MAX_CONNECTIONS + 1 ];
 
 public:
 
@@ -41,7 +44,7 @@ public:
 	void	initServer( Config &config );
 	void	createSocket( void );
 	void	bindSocket( Config &config );
+	void	setKqueue( void );
 };
-
 
 #endif
