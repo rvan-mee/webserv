@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 14:33:00 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/03 16:46:40 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -146,6 +146,7 @@ void	HttpServer::initServer( Config &config )
 				This buffer has to be parsed to extract the request information.
 				A function will be created to do this.
 				*/ 
+				parseRequest(buffer);
 				
 				/* TODO 2:
 				After the request has been parsed, the response has to be created.

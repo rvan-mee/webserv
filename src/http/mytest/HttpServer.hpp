@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 17:06:35 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/03 17:18:17 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,37 +15,13 @@
 
 # define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
 
-#include <Config.hpp>
 #include <netinet/in.h> // sockaddr_in
 #include <sys/event.h> // kqueue
 #include <string>
 
 class HttpServer
 {
-private:
-
-	int				serverSocket;
-	sockaddr_in 	address;
-	int				kqueueFd;
-	struct kevent	event[ MAX_CONNECTIONS + 1 ];
-
-public:
-
-	/******************************
-	* Constructors & Destructors
-	*****************************/
-
-	HttpServer( void );
-	~HttpServer();
-
-	/******************************
-	* Server init
-	*****************************/
-
-	void	initServer( Config &config );
-	void	createSocket( void );
-	void	bindSocket( Config &config );
-	void	setKqueue( void );
+	public:
 	void    parseRequest( std::vector<char> buffer );
 };
 
