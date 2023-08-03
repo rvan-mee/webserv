@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 14:33:00 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/03 16:16:36 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@
 #include <netinet/in.h> // sockaddr_in
 #include <sys/event.h> // kqueue
 #include <unistd.h> // close()
+#include <iostream> 
+#include <fcntl.h> // fcntl()
 
 /******************************
 * Constructors & Destructors
@@ -63,8 +65,9 @@ void	HttpServer::initServer( Config &config )
 	/* The following loop will continue to execute as long as the condition in the while-loop 
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
-	int		numEvents;
-	while ( true )
+	int			numEvents;
+	extern int 	gSignalStatus;
+	while ( gSignalStatus == 0 )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
 		channel (a file system descriptor) with the event structure this->event. 
@@ -72,6 +75,7 @@ void	HttpServer::initServer( Config &config )
 		passed in the function call. This means the function will wait (block) until at 
 		least one event occurs. If an event occurs, the details of the event are stored 
 		in the array this->event, and the number of events is stored in the variable numEvents.*/
+std::cout << "Waiting for events" << std::endl;
 		numEvents = kevent( this->kqueueFd, NULL, 0, this->event, MAX_CONNECTIONS, NULL );
 		if ( numEvents < 0 )
 			throw ( std::runtime_error( "Failed to wait for events" ) );
@@ -86,7 +90,7 @@ void	HttpServer::initServer( Config &config )
 			int	eventFd = this->event[i].ident;
 
 			/* If the client had disconnected, close the connection */
-			if ( event[i].flags & EV_EOF )
+			if ( event[i].flags && EV_EOF )
 				close( eventFd );
 
 			/* If an event is detected on the serverSocket, it typically means 
@@ -141,6 +145,10 @@ void	HttpServer::initServer( Config &config )
 						buffer.resize( buffer.size() * 2 );
 				}
 
+				// Print the request received from the client (FOR TESTING)
+				std::cout << "Received request: " << std::endl;
+				std::cout << buffer.data() << std::endl;
+				
 				/* TODO 1:
 				The data received from the client is now stored in the buffer.
 				This buffer has to be parsed to extract the request information.
@@ -223,4 +231,10 @@ void	HttpServer::setKqueue( void )
 	// Kevent is used to register events with the kqueue and to monitor them for changes.
 	if ( kevent( this->kqueueFd, this->event, 1, NULL, 0, NULL ) < 0 )
 		throw ( std::runtime_error( "Failed to set event" ) );
+
+	// We set the server socket to non-blocking. This is to prevent the server from blocking.
+	// when pressing CTRL + C or CTRL + D to stop the server.
+	int status = fcntl( this->serverSocket, F_SETFL, fcntl(this->serverSocket, F_GETFL, 0) | O_NONBLOCK );
+	if (status == -1)
+		throw ( std::runtime_error( "Failed to set socket to non-blocking" ) );
 }

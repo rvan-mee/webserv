@@ -34,7 +34,7 @@ CONFIG_SRCS			:=	Config.cpp			\
 						Server.cpp			\
 						Utils.cpp
 
-HTTP_SRCS			:=
+HTTP_SRCS			:= 	HttpServer.cpp
 
 SOCKET_SRCS			:=
 

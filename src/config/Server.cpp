@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/20 13:49:29 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/26 13:41:08 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/03 16:15:44 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -287,12 +287,10 @@ Location  &Server::getLocation( std::string locationUrl )
             urls = it->getUrls();
             for ( it2 = urls.begin(); it2 != urls.end(); it2++ )
             {
-                std::cout << "url: " << *it2 << std::endl;
                 if ( *it2 == temp )
                     return ( *it );
             }
         }
-        std::cout << "temp: " << temp << std::endl;
     }
     throw ( std::runtime_error( "No matching location block found" ) );
 }

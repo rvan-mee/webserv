@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/06 14:16:31 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/27 10:29:17 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/03 16:17:10 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,15 @@
 #include <Utils.hpp>
 #include <iostream>
 
+// Global variable for signal handling. 
+volatile    sig_atomic_t gSignalStatus = 0;
+
+// Signal handler for SIGINT
+void signalHandler(int signal)
+{
+    gSignalStatus = signal;
+}
+
 int main()
 {
     Config      config;
@@ -24,6 +33,9 @@ int main()
     
     try 
     {
+        /* Set signal handler */
+        signal(SIGINT, signalHandler);
+
         /* Parse server config file. CONFIGFILE is defined in Config.hpp */
         config.parseConfig(CONFIGFILE);
 
@@ -37,7 +49,7 @@ int main()
         return (1);
     }
 
-    std::cout << config.getServer("example.com").getLocation("/files/photos/main/hello/cute_cat.jpg").getFastcgiPass() << std::endl;
+    // std::cout << config.getServer("example.com").getLocation("/files/photos/main/hello/cute_cat.jpg").getFastcgiPass() << std::endl;
 
     // std::cout << config.getServer("example.com").getListen()[0] << std::endl;
 
