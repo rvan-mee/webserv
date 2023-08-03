@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/01 16:46:49 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/03 14:33:00 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,25 +56,31 @@ void	HttpServer::initServer( Config &config )
 	if ( listen( this->serverSocket, MAX_CONNECTIONS ) < 0)
 		throw ( std::runtime_error( "Failed to start listening" )) ;
 
-	/* TODO: Work from here. Create a loop that accepts connections and handles them
-	according to the HTTP protocol. Probably have to use Kqueue for this.
-	see: https://dev.to/frevib/a-tcp-server-with-kqueue-527
-	 */
 //TODO: CODAM will be migrating to Linux soon, 
-//so kqueue will have to be changed to epoll.
+//so kqueue will have to be changed to epoll maybe.
 	this->setKqueue();
 
+	/* The following loop will continue to execute as long as the condition in the while-loop 
+	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
+	active and monitor events on the channel. */
 	int		numEvents;
-	while ("The world keeps turning")
+	while ( true )
 	{
-		/* Wait for events to be triggered. numEvents is the number 
-		of events that have been triggered. kevent() returns 0 if 
-		no events have been triggered. */
+		/* The kevent function is used to wait and check for events on the this->kqueueFd 
+		channel (a file system descriptor) with the event structure this->event. 
+		The kevent function is set to a blocking mode because no KEVENT_FLAG_NONBLOCK is 
+		passed in the function call. This means the function will wait (block) until at 
+		least one event occurs. If an event occurs, the details of the event are stored 
+		in the array this->event, and the number of events is stored in the variable numEvents.*/
 		numEvents = kevent( this->kqueueFd, NULL, 0, this->event, MAX_CONNECTIONS, NULL );
 		if ( numEvents < 0 )
 			throw ( std::runtime_error( "Failed to wait for events" ) );
 		
-		/* If an event has been triggered, handle it */
+		/* A loop is executed over the received events in this->event to process each one. 
+		There are three possible events that can occur: 
+		1. A client has disconnected.
+		2. A new client has connected to the server.
+		3. An existing client has sent data to the server. */
 		for (int i = 0; i < numEvents; i++)
 		{
 			int	eventFd = this->event[i].ident;
@@ -83,7 +89,10 @@ void	HttpServer::initServer( Config &config )
 			if ( event[i].flags & EV_EOF )
 				close( eventFd );
 
-			/* If the event is the server socket, accept the connection */
+			/* If an event is detected on the serverSocket, it typically means 
+			an incoming connection from a new client. In that case, the connection 
+			is accepted, and the clientSocket is added to the this->kqueueFd 
+			channel to monitor it for read events (reading data from the client). */
 			else if ( eventFd == this->serverSocket )
 			{
 				int	clientSocket = accept( this->serverSocket, NULL, NULL );
@@ -97,12 +106,52 @@ void	HttpServer::initServer( Config &config )
 					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
 			}
 
-			else
+			/* If the event is not on the serverSocket, it is on a clientSocket.
+			This means that the client has sent data to the server. */
+			else if ( event[i].filter && EVFILT_READ )
 			{
-				// 
-				int clientSocket = this->event[i].ident;
-				//TODO: Handle request
-				//this->handleRequest( clientSocket );
+				/* Create a buffer to store the data received from the client.
+				The initial size of the buffer is 1024 bytes. It will be resized later
+				if the data received from the client (requestSize) is larger than 
+				1024 bytes. */
+				std::vector<char>	buffer( 1024 );
+				size_t				requestSize = 0;
+
+				/* With the following loop, the data is read from the client socket until 
+				there is no more data to read. If there is more data to read 
+				(bytesRead == 0), the loop is ended. */
+				while ( true )
+				{
+					// Read the data from the client socket into the buffer
+					ssize_t	bytesRead = recv( eventFd, buffer.data(), buffer.size(), 0 );
+
+					// Increase the request size by the number of bytes read
+					requestSize += bytesRead;
+
+					// Check if there has been an error reading from the client socket
+					if ( bytesRead < 0 )
+						throw ( std::runtime_error( "Failed to read from client socket" ) );
+
+					// If there is no more data to read, break out of the loop
+					else if ( bytesRead == 0 )
+						break ;
+
+					// If the buffer is full, resize it
+					else if ( requestSize >= buffer.size() )
+						buffer.resize( buffer.size() * 2 );
+				}
+
+				/* TODO 1:
+				The data received from the client is now stored in the buffer.
+				This buffer has to be parsed to extract the request information.
+				A function will be created to do this.
+				*/ 
+				
+				/* TODO 2:
+				After the request has been parsed, the response has to be created.
+				*/
+				
+				close ( eventFd );
 			}
 		}
 	}
