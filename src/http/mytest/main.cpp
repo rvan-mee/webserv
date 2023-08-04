@@ -1,5 +1,5 @@
 #include "HttpServer.hpp" 
-
+//g++ main.cpp HttpParser.cpp && ./a.out
 int main()
 {
     HttpServer server;
@@ -7,5 +7,5 @@ int main()
 	// std::vector<char> buffer(s.begin(), s.end());
     std::vector<char> v;
     std::copy(s.begin(), s.end(), std::back_inserter(v));
-    server.parseRequest(buffer);
+    server.parseRequest(v);
 }

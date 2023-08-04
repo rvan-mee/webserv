@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 17:18:17 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/04 13:28:41 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,11 +18,22 @@
 #include <netinet/in.h> // sockaddr_in
 #include <sys/event.h> // kqueue
 #include <string>
+#include <vector>
+#include <iostream>
+#include <sstream>
+
 
 class HttpServer
 {
+
 	public:
-	void    parseRequest( std::vector<char> buffer );
+		enum requestType { GET, POST, DELETE };
+		void    parseRequest( std::vector<char> buffer );
+		void	isMethod(std::string line);
+		requestType	getMethod();
+		void	setMethod(requestType method);
+	private:
+		requestType	_request_method;
 };
 
 #endif

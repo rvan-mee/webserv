@@ -29,13 +29,35 @@ Performing Action: After parsing the entire request, the server determines the a
 
 Generating Response: Once the server processes the request and generates the desired response (e.g., HTML, JSON, XML), it creates an HTTP response with a status code, headers, and the response body. The server sends this response back to the client over the network.
 */
+
+/**
+ * @brief Check if this is the request line and save the method
+ * 
+ * @param line 
+ */
+void		HttpServer::isMethod(std::string line)
+{
+	if (!line.find("GET"))
+		setMethod(GET);
+	else if (!line.find("POST"))
+		setMethod(POST);
+	else if (!line.find("DELETE"))
+		setMethod(DELETE);
+	// getMethod();
+}
+
 void    HttpServer::parseRequest(std::vector<char> buffer)
 {
-	// std::string file(buffer.begin(), buffer.end());
-    std::stringstream ss(buffer.begin(), buffer.end());
+	std::string file(buffer.begin(), buffer.end());
+    std::stringstream ss(file);
 
-	/* parse per line */
-	std::string line;
-	while ( std::getline( ss, line, ' ' ) ) 
-		line = '1';
+    /* parse per line */
+    std::string line;
+    while (std::getline(ss, line)) // Use newline '\n' as the delimiter
+    {
+        // Process each line here, or store it in a container for further processing
+		isMethod(line);
+        // For example, you can print the line to the console:
+        std::cout << line << std::endl;
+    }
 }
