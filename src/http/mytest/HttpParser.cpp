@@ -37,43 +37,31 @@ Generating Response: Once the server processes the request and generates the des
  */
 void		HttpServer::isRequestLine(std::string line)
 {
-  
     if (line.find("GET") && line.find("POST") && line.find("DELETE"))
         return ;
-    // variable to store token obtained from the original
-    // string
+    // variable to store token obtained from the original string
     std::string s;
- 
     // constructing stream from the string
     std::stringstream ss(line);
- 
     // declaring vector to store the string after split
     std::vector<std::string> v;
- 
-    // using while loop until the getline condition is
-    // satisfied
-    // ' ' represent split the string whenever a space is
-    // found in the original string
     while (getline(ss, s, ' ')) {
- 
         // store token string in the vector
         v.push_back(s);
     }
     if ((int)v.size() != 3)
-        throw ( std::runtime_error( "request line incomplete" ) );
-    // print the vector
-    for (int i = 0; i < (int)v.size(); i++) {
-        std::cout << v[i] << std::endl;
-        if (!v[i].find("GET"))
-            setMethod(GET);
-        else if (!v[i].find("POST"))
-            setMethod(POST);
-        else if (!v[i].find("DELETE"))
-            setMethod(DELETE);
-    }
- 
-	
-	// getMethod();
+        throw ( std::runtime_error( "wrong request line" ) );
+    if (v[0] == "GET")
+        setMethod(GET);
+    else if (v[0] == "POST")
+        setMethod(POST);
+    else if (v[0] == "DELETE")
+        setMethod(DELETE);
+    else
+        throw ( std::runtime_error( "wrong method" ) );
+    setURI(v[1]);
+    if (v[2] != "HTTP/1.1")
+        throw ( std::runtime_error( "HTTP 1.1 not given" ) );
 }
 
 

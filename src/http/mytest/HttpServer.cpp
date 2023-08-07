@@ -15,3 +15,10 @@ void	HttpServer::setMethod(requestType method)
 {
     _request_method = method;
 }
+
+void	HttpServer::setURI(std::string target)
+{
+    if (target.empty())
+        throw ( std::runtime_error( "no target in request found" ) );
+    _request_URI = target;
+}

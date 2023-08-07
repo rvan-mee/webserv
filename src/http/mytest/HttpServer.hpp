@@ -31,6 +31,7 @@ class HttpServer
 		void	isRequestLine(std::string line);
 		requestType	getMethod();
 		void	setMethod(requestType method);
+		void	setURI(std::string target);
 	private:
 		requestType	_request_method;
 		std::string _request_URI;
