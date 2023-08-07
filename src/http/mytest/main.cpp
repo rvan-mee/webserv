@@ -7,5 +7,13 @@ int main()
 	// std::vector<char> buffer(s.begin(), s.end());
     std::vector<char> v;
     std::copy(s.begin(), s.end(), std::back_inserter(v));
-    server.parseRequest(v);
+    try {
+        server.parseRequest(v);
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << e.what() << std::endl;
+        return (1);
+    }
+    return (0);
 }

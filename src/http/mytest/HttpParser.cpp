@@ -35,17 +35,61 @@ Generating Response: Once the server processes the request and generates the des
  * 
  * @param line 
  */
-void		HttpServer::isMethod(std::string line)
+void		HttpServer::isRequestLine(std::string line)
 {
-	if (!line.find("GET"))
-		setMethod(GET);
-	else if (!line.find("POST"))
-		setMethod(POST);
-	else if (!line.find("DELETE"))
-		setMethod(DELETE);
+  
+    if (line.find("GET") && line.find("POST") && line.find("DELETE"))
+        return ;
+    // variable to store token obtained from the original
+    // string
+    std::string s;
+ 
+    // constructing stream from the string
+    std::stringstream ss(line);
+ 
+    // declaring vector to store the string after split
+    std::vector<std::string> v;
+ 
+    // using while loop until the getline condition is
+    // satisfied
+    // ' ' represent split the string whenever a space is
+    // found in the original string
+    while (getline(ss, s, ' ')) {
+ 
+        // store token string in the vector
+        v.push_back(s);
+    }
+    if ((int)v.size() != 3)
+        throw ( std::runtime_error( "request line incomplete" ) );
+    // print the vector
+    for (int i = 0; i < (int)v.size(); i++) {
+        std::cout << v[i] << std::endl;
+        if (!v[i].find("GET"))
+            setMethod(GET);
+        else if (!v[i].find("POST"))
+            setMethod(POST);
+        else if (!v[i].find("DELETE"))
+            setMethod(DELETE);
+    }
+ 
+	
 	// getMethod();
 }
 
+
+/*
+A Request-line  HTTP 1.1
+
+Zero or more header (General|Request|Entity) fields followed by CRLF
+
+An empty line (i.e., a line with nothing preceding the CRLF) 
+indicating the end of the header fields
+
+Optionally a message-body
+*/
+
+/**
+*/
 void    HttpServer::parseRequest(std::vector<char> buffer)
 {
 	std::string file(buffer.begin(), buffer.end());
@@ -56,7 +100,9 @@ void    HttpServer::parseRequest(std::vector<char> buffer)
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
         // Process each line here, or store it in a container for further processing
-		isMethod(line);
+		isRequestLine(line);
+        // isHeader(line);
+        
         // For example, you can print the line to the console:
         std::cout << line << std::endl;
     }

@@ -16,7 +16,7 @@
 # define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
 
 #include <netinet/in.h> // sockaddr_in
-#include <sys/event.h> // kqueue
+// #include <sys/event.h> // kqueue
 #include <string>
 #include <vector>
 #include <iostream>
@@ -25,15 +25,16 @@
 
 class HttpServer
 {
-
 	public:
 		enum requestType { GET, POST, DELETE };
 		void    parseRequest( std::vector<char> buffer );
-		void	isMethod(std::string line);
+		void	isRequestLine(std::string line);
 		requestType	getMethod();
 		void	setMethod(requestType method);
 	private:
 		requestType	_request_method;
+		std::string _request_URI;
+		std::string	_message_body;
 };
 
 #endif
