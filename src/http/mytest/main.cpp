@@ -1,5 +1,6 @@
 #include "HttpServer.hpp" 
 //g++ -Wall -Wextra -Werror main.cpp HttpParser.cpp HttpServer.cpp && ./a.out
+// curl -X POST -H "Content-Type: plain/text" --data "BODY IS HERE write something shorter or longer than body limit"
 int main()
 {
     HttpServer server;
