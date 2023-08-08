@@ -1,4 +1,5 @@
-#include "HttpServer.hpp" 
+#include "HttpRequest.hpp" 
+#include "HttpResponse.hpp"
 /*
 To expand on this example, a user wants to visit TechTarget.com.
 The user types in the web address and the computer sends a "GET" request to a server that hosts that address.
@@ -42,14 +43,11 @@ Generating Response: Once the server processes the request and generates the des
  * 
  * @param line  request line
  */
-void		HttpServer::isRequestLine(std::string line)
+void		HttpRequest::isRequestLine(std::string line)
 {
-    // variable to store token obtained from the original string
     std::string s;
-    // constructing stream from the string
     std::stringstream ss(line);
-    // declaring vector to store the string after split
-    std::vector<std::string> v;
+    std::vector<std::string> v; // v[0] = method, v[1] = request-target, v[2] = HTTP-version
     while (getline(ss, s, ' ')) {
         // store token string in the vector
         v.push_back(s);
@@ -75,13 +73,10 @@ void		HttpServer::isRequestLine(std::string line)
  * 
  * @param line header line
  */
-void		HttpServer::isHeader(std::string line)
+void		HttpRequest::isHeader(std::string line)
 {
-    // variable to store token obtained from the original string
     std::string s;
-    // constructing stream from the string
     std::stringstream ss(line);
-    // declaring vector to store the string after split
     std::vector<std::string> v; // v[0] = field-name, v[1] = field-value
     while (getline(ss, s, ':')) {
         // store token string in the vector
@@ -105,12 +100,13 @@ void		HttpServer::isHeader(std::string line)
  * 
  * @param buffer  request
  */
-void    HttpServer::parseRequest(std::vector<char> buffer)
+void    HttpRequest::parseRequest(std::vector<char> buffer)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
 
     std::string line;
+    HttpResponse response;
     bool emptyLineFound = false;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {

@@ -1,22 +1,19 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   HttpServer.hpp                                     :+:    :+:            */
+/*   HttpRequest.hpp                                    :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/08 14:17:13 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/08 15:18:05 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef HTTPSERVER_HPP
-# define HTTPSERVER_HPP
+#ifndef HTTPREQUEST_HPP
+# define HTTPREQUEST_HPP
 
-# define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
 
-#include <netinet/in.h> // sockaddr_in
-// #include <sys/event.h> // kqueue
 #include <string>
 #include <vector>
 #include <iostream>
@@ -26,7 +23,7 @@
  * @brief HttpServer class to parse the request and store the data in the class variables
  * 
  */
-class HttpServer
+class HttpRequest
 {
 	public:
 		enum requestType { GET, POST, DELETE };
