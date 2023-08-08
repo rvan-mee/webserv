@@ -43,7 +43,7 @@ Generating Response: Once the server processes the request and generates the des
  * 
  * @param line  request line
  */
-void		HttpRequest::isRequestLine(std::string line)
+void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
 {
     std::string s;
     std::stringstream ss(line);
@@ -73,7 +73,7 @@ void		HttpRequest::isRequestLine(std::string line)
  * 
  * @param line header line
  */
-void		HttpRequest::isHeader(std::string line)
+void		HttpRequest::isHeader(std::string line, HttpResponse &response)
 {
     std::string s;
     std::stringstream ss(line);
@@ -111,11 +111,11 @@ void    HttpRequest::parseRequest(std::vector<char> buffer)
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
-            isRequestLine(line);
+            isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line
-            isHeader(line);
+            isHeader(line, response);
         else // body line
             addLineToBody(line);
     }

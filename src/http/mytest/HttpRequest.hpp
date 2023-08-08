@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/08 15:18:05 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/08 16:19:04 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,8 @@ class HttpRequest
 	public:
 		enum requestType { GET, POST, DELETE };
 		void    parseRequest( std::vector<char> buffer );
-		void	isRequestLine(std::string line);
-		void	isHeader(std::string line);
+		void	isRequestLine(std::string line, HttpResponse &response);
+		void	isHeader(std::string line, HttpResponse &response);
 		requestType	getMethod();
 		void	setMethod(requestType method);
 		void	setURI(std::string target);
