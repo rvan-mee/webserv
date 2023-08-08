@@ -30,20 +30,20 @@ Performing Action: After parsing the entire request, the server determines the a
 Generating Response: Once the server processes the request and generates the desired response (e.g., HTML, JSON, XML), it creates an HTTP response with a status code, headers, and the response body. The server sends this response back to the client over the network.
 */
 
-/**
- * @brief Check if this is the request line and save the method
- * 
- * @param line 
- */
+
 //  A server that receives a method longer than any that it implements SHOULD respond with a 501 (Not Implemented) 
 //  status code. A server that receives a request-target longer than any URI it wishes to parse MUST respond with a 
 //  414 (URI Too Long) status code (see Section 15.5.15 of [HTTP]).
 // Recipients of an invalid request-line SHOULD respond with either a 400 (Bad Request) error or a 301 (Moved Permanently)
 //  redirect with the request-target properly encoded.
+
+/**
+ * @brief Check if this is the request line and save the method
+ * 
+ * @param line 
+ */
 void		HttpServer::isRequestLine(std::string line)
 {
-    if (line.find("GET") && line.find("POST") && line.find("DELETE"))
-        return ;
     // variable to store token obtained from the original string
     std::string s;
     // constructing stream from the string
@@ -65,11 +65,44 @@ void		HttpServer::isRequestLine(std::string line)
     else
         throw ( std::runtime_error( "wrong method" ) );
     setURI(v[1]);
+    v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
     if (v[2] != "HTTP/1.1")
         throw ( std::runtime_error( "HTTP 1.1 not given" ) );
 }
 
-
+/**
+ * @brief check if header lines have correct syntax
+ * 
+ * @param line 
+ */
+void		HttpServer::isHeader(std::string line)
+{
+    (void)line;
+    // // variable to store token obtained from the original string
+    // std::string s;
+    // // constructing stream from the string
+    // std::stringstream ss(line);
+    // // declaring vector to store the string after split
+    // std::vector<std::string> v;
+    // while (getline(ss, s, ' ')) {
+    //     // store token string in the vector
+    //     v.push_back(s);
+    // }
+    // if ((int)v.size() != 3)
+    //     throw ( std::runtime_error( "wrong request line" ) );
+    // if (v[0] == "GET")
+    //     setMethod(GET);
+    // else if (v[0] == "POST")
+    //     setMethod(POST);
+    // else if (v[0] == "DELETE")
+    //     setMethod(DELETE);
+    // else
+    //     throw ( std::runtime_error( "wrong method" ) );
+    // setURI(v[1]);
+    // v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
+    // if (v[2] != "HTTP/1.1")
+    //     throw ( std::runtime_error( "HTTP 1.1 not given" ) );
+}
 /*
 A Request-line  HTTP 1.1
 
@@ -90,11 +123,18 @@ void    HttpServer::parseRequest(std::vector<char> buffer)
 
     /* parse per line */
     std::string line;
+    bool emptyLineFound = false;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
         // Process each line here, or store it in a container for further processing
-		isRequestLine(line);
-        // isHeader(line);
+        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE"))
+            isRequestLine(line);
+        else if (line == "\r\n" || line == "\n")
+            emptyLineFound = true;
+        else if(emptyLineFound == false)
+            isHeader(line);
+        // else
+            // isBody
         
         // For example, you can print the line to the console:
         std::cout << line << std::endl;

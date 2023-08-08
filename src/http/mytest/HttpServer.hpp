@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/04 13:28:41 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/08 11:28:11 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
-
+#include <algorithm>
 
 class HttpServer
 {
@@ -29,6 +29,7 @@ class HttpServer
 		enum requestType { GET, POST, DELETE };
 		void    parseRequest( std::vector<char> buffer );
 		void	isRequestLine(std::string line);
+		void	isHeader(std::string line);
 		requestType	getMethod();
 		void	setMethod(requestType method);
 		void	setURI(std::string target);
