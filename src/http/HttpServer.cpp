@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 17:50:58 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/08 14:49:33 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,20 +87,14 @@ void	HttpServer::initServer( Config &config )
 		3. An existing client has sent data to the server. */
 		for (int i = 0; i < numEvents; i++)
 		{
-std::cout << "numEvents: " << numEvents << std::endl;
 			int	eventFd = this->event[i].ident;
-
-			/* If the client had disconnected, close the connection */
-			if ( event[i].flags & EV_EOF )
-				close( eventFd );
 
 			/* If an event is detected on the serverSocket, it typically means 
 			an incoming connection from a new client. In that case, the connection 
 			is accepted, and the clientSocket is added to the this->kqueueFd 
 			channel to monitor it for read events (reading data from the client). */
-			else if ( eventFd == this->serverSocket )
+			if ( eventFd == this->serverSocket )
 			{
-std::cout << "HERE WE ARE " << std::endl;
 				int	clientSocket = accept( this->serverSocket, NULL, NULL );
 				if ( clientSocket < 0 )
 					throw ( std::runtime_error( "Failed to accept connection" ) );
@@ -149,7 +143,10 @@ std::cout << "HERE WE ARE " << std::endl;
 // Print the request received from the client (FOR TESTING)
 std::cout << "Received request: " << buffer.data() << std::endl;
 
-std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+			/* If the client had disconnected, close the connection */
+			if ( event[i].flags & EV_EOF )
+				close( eventFd );
+
 				
 				/* TODO 1:
 				The data received from the client is now stored in the buffer.
