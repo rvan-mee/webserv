@@ -38,9 +38,9 @@ Generating Response: Once the server processes the request and generates the des
 //  redirect with the request-target properly encoded.
 
 /**
- * @brief Check if this is the request line and save the method
+ * @brief Check if request line has the right syntax and save the method & URI
  * 
- * @param line 
+ * @param line  request line
  */
 void		HttpServer::isRequestLine(std::string line)
 {
@@ -71,74 +71,59 @@ void		HttpServer::isRequestLine(std::string line)
 }
 
 /**
- * @brief check if header lines have correct syntax
+ * @brief Check if header has the right syntax and save the header field
  * 
- * @param line 
+ * @param line header line
  */
 void		HttpServer::isHeader(std::string line)
 {
-    (void)line;
-    // // variable to store token obtained from the original string
-    // std::string s;
-    // // constructing stream from the string
-    // std::stringstream ss(line);
-    // // declaring vector to store the string after split
-    // std::vector<std::string> v;
-    // while (getline(ss, s, ' ')) {
-    //     // store token string in the vector
-    //     v.push_back(s);
-    // }
-    // if ((int)v.size() != 3)
-    //     throw ( std::runtime_error( "wrong request line" ) );
-    // if (v[0] == "GET")
-    //     setMethod(GET);
-    // else if (v[0] == "POST")
-    //     setMethod(POST);
-    // else if (v[0] == "DELETE")
-    //     setMethod(DELETE);
-    // else
-    //     throw ( std::runtime_error( "wrong method" ) );
-    // setURI(v[1]);
-    // v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
-    // if (v[2] != "HTTP/1.1")
-    //     throw ( std::runtime_error( "HTTP 1.1 not given" ) );
+    // variable to store token obtained from the original string
+    std::string s;
+    // constructing stream from the string
+    std::stringstream ss(line);
+    // declaring vector to store the string after split
+    std::vector<std::string> v; // v[0] = field-name, v[1] = field-value
+    while (getline(ss, s, ':')) {
+        // store token string in the vector
+        v.push_back(s);
+    }
+    if ((int)v.size() != 2)
+        throw ( std::runtime_error( "wrong header field" ) );
+    if (std::isspace(v[0].back()))
+        throw ( std::runtime_error( "whitespace before header field semicolon" ) );
+    v[0].erase(std::remove(v[0].begin(), v[0].end(), ' '), v[0].end()); // remove whitespace
+    v[1].erase(std::remove(v[1].begin(), v[1].end(), ' '), v[1].end()); // remove whitespace
+    v[1].erase(std::remove(v[1].begin(), v[1].end(), '\r'), v[1].end()); // remove \r
+    if (v[0] == "Content-Type")
+        setContentType(v[1]);
+    if (v[0] == "Host")
+        setHost(v[1]);
 }
-/*
-A Request-line  HTTP 1.1
-
-Zero or more header (General|Request|Entity) fields followed by CRLF
-
-An empty line (i.e., a line with nothing preceding the CRLF) 
-indicating the end of the header fields
-
-Optionally a message-body
-*/
 
 /**
-*/
+ * @brief Parse the request and save the information
+ * 
+ * @param buffer  request
+ */
 void    HttpServer::parseRequest(std::vector<char> buffer)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
 
-    /* parse per line */
     std::string line;
     bool emptyLineFound = false;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        // Process each line here, or store it in a container for further processing
-        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE"))
+        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line);
-        else if (line == "\r\n" || line == "\n")
+        else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
-        else if(emptyLineFound == false)
+        else if(emptyLineFound == false) // header line
             isHeader(line);
-        // else
-            // isBody
-        
-        // For example, you can print the line to the console:
-        std::cout << line << std::endl;
+        else // body line
+            addLineToBody(line);
     }
+    printAll();
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
 //  message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire 
