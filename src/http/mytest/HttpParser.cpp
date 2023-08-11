@@ -45,6 +45,7 @@ Generating Response: Once the server processes the request and generates the des
  */
 void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
 {
+    (void)response;
     std::string s;
     std::stringstream ss(line);
     std::vector<std::string> v; // v[0] = method, v[1] = request-target, v[2] = HTTP-version
@@ -53,7 +54,7 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
         v.push_back(s);
     }
     if ((int)v.size() != 3)
-        throw ( std::runtime_error( "wrong request line" ) );
+        return (response.setError(400, "wrong request line"));
     if (v[0] == "GET")
         setMethod(GET);
     else if (v[0] == "POST")
@@ -75,6 +76,7 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
  */
 void		HttpRequest::isHeader(std::string line, HttpResponse &response)
 {
+    (void)response;
     std::string s;
     std::stringstream ss(line);
     std::vector<std::string> v; // v[0] = field-name, v[1] = field-value
@@ -100,7 +102,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-void    HttpRequest::parseRequest(std::vector<char> buffer)
+std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -120,6 +122,7 @@ void    HttpRequest::parseRequest(std::vector<char> buffer)
             addLineToBody(line);
     }
     printAll();
+    return (response.buildResponse());
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
 //  message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire 
