@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/08 14:49:33 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/11 13:37:08 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,7 @@ void	HttpServer::initServer( Config &config )
 				while ( true )
 				{
 					// Read the data from the client socket into the buffer
-					ssize_t	bytesRead = recv( eventFd, buffer.data(), buffer.size(), 0 );
+					ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
 
 					// Increase the request size by the number of bytes read
 					requestSize += bytesRead;
