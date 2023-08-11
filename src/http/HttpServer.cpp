@@ -6,16 +6,21 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 16:46:40 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/11 15:18:50 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HttpServer.hpp" 
+#include "HttpRequest.hpp"
 #include <stdexcept> 
 #include <sys/socket.h> 
 #include <netinet/in.h> // sockaddr_in
 #include <sys/event.h> // kqueue
 #include <unistd.h> // close()
+#include <iostream> 
+
+#include <chrono>
+#include <thread>
 
 /******************************
 * Constructors & Destructors
@@ -63,18 +68,18 @@ void	HttpServer::initServer( Config &config )
 	/* The following loop will continue to execute as long as the condition in the while-loop 
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
-	int		numEvents;
+	int			numEvents;
 	while ( true )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
 		channel (a file system descriptor) with the event structure this->event. 
-		The kevent function is set to a blocking mode because no KEVENT_FLAG_NONBLOCK is 
-		passed in the function call. This means the function will wait (block) until at 
+		The kevent function is set to a blocking mode because the KEVENT_FLAG_NONBLOCK is 
+		not passed in the function call. This means the function will wait (block) until at 
 		least one event occurs. If an event occurs, the details of the event are stored 
 		in the array this->event, and the number of events is stored in the variable numEvents.*/
 		numEvents = kevent( this->kqueueFd, NULL, 0, this->event, MAX_CONNECTIONS, NULL );
 		if ( numEvents < 0 )
-			throw ( std::runtime_error( "Failed to wait for events" ) );
+			throw ( std::runtime_error( "Server Terminated or Failed to wait for events" ) );
 		
 		/* A loop is executed over the received events in this->event to process each one. 
 		There are three possible events that can occur: 
@@ -85,20 +90,16 @@ void	HttpServer::initServer( Config &config )
 		{
 			int	eventFd = this->event[i].ident;
 
-			/* If the client had disconnected, close the connection */
-			if ( event[i].flags & EV_EOF )
-				close( eventFd );
-
 			/* If an event is detected on the serverSocket, it typically means 
 			an incoming connection from a new client. In that case, the connection 
 			is accepted, and the clientSocket is added to the this->kqueueFd 
 			channel to monitor it for read events (reading data from the client). */
-			else if ( eventFd == this->serverSocket )
+			if ( eventFd == this->serverSocket )
 			{
 				int	clientSocket = accept( this->serverSocket, NULL, NULL );
 				if ( clientSocket < 0 )
 					throw ( std::runtime_error( "Failed to accept connection" ) );
-					
+
 				/* Add the client socket to the kqueue */
 				struct kevent	evSet;
 				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
@@ -108,7 +109,7 @@ void	HttpServer::initServer( Config &config )
 
 			/* If the event is not on the serverSocket, it is on a clientSocket.
 			This means that the client has sent data to the server. */
-			else if ( event[i].filter && EVFILT_READ )
+			else if ( event[i].filter & EVFILT_READ )
 			{
 				/* Create a buffer to store the data received from the client.
 				The initial size of the buffer is 1024 bytes. It will be resized later
@@ -123,7 +124,7 @@ void	HttpServer::initServer( Config &config )
 				while ( true )
 				{
 					// Read the data from the client socket into the buffer
-					ssize_t	bytesRead = recv( eventFd, buffer.data(), buffer.size(), 0 );
+					ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
 
 					// Increase the request size by the number of bytes read
 					requestSize += bytesRead;
@@ -140,18 +141,48 @@ void	HttpServer::initServer( Config &config )
 					else if ( requestSize >= buffer.size() )
 						buffer.resize( buffer.size() * 2 );
 				}
+// Print the request received from the client (FOR TESTING)
+std::cout << "Received request: " << buffer.data() << std::endl;
 
+			/* If the client had disconnected, close the connection */
+			if ( event[i].flags & EV_EOF )
+				close( eventFd );
+
+				
 				/* TODO 1:
 				The data received from the client is now stored in the buffer.
 				This buffer has to be parsed to extract the request information.
 				A function will be created to do this.
 				*/ 
-				parseRequest(buffer);
-				
+			    HttpRequest server;
+
+				// try {
+				// 	std::cout << server.parseRequestandGiveReponse(buffer);
+				// }
+				// catch (std::exception &e)
+				// {
+				// 	std::cerr << e.what() << std::endl;
+				// 	return;
+				// }				
 				/* TODO 2:
 				After the request has been parsed, the response has to be created.
 				*/
-				
+				std::string response = server.parseRequestandGiveReponse(buffer); // Replace with actual response creation
+				std::cout << response;
+				// Convert the response string to bytes
+				const char *responseBytes = response.c_str();
+				size_t responseSize = response.size();
+
+				// Send the response to the client
+				ssize_t bytesSent = send(eventFd, responseBytes, responseSize, 0);
+				if (bytesSent < 0) {
+					std::cerr << "Failed to send response to client" << std::endl;
+				} else {
+					if (fflush(stdout) != 0) {
+						std::cerr << "Failed to flush output buffers" << std::endl;
+					}
+					std::cout << "Sent response: " << response << std::endl;
+				}
 				close ( eventFd );
 			}
 		}

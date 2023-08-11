@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/06 14:16:31 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/27 10:29:17 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/03 17:01:18 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,20 +36,6 @@ int main()
         std::cerr << e.what() << std::endl;
         return (1);
     }
-
-    std::cout << config.getServer("example.com").getLocation("/files/photos/main/hello/cute_cat.jpg").getFastcgiPass() << std::endl;
-
-    // std::cout << config.getServer("example.com").getListen()[0] << std::endl;
-
-    // std::cout << config.getServer("example.com").getAccessLog() << std::endl;
-    // std::cout << "ROOT: " << config.getRoot() << std::endl;
-    // std::cout << "ADDRES: " << &config.getServer("example.com") << std::endl;
-    // std::cout << "Error log: " << config.getServer("example.com").getErrorLog() << std::endl;
-    // std::cout << "Error Page: " << config.getServer("test").getErrorPage( 404 ) << std::endl;
-    // std::cout << "Error Page: " << config.getServer("test").getErrorPage( 502 ) << std::endl;
-    // std::cout << "ADDRES: " << &config.getServer("example.com") << std::endl;
-    // std::cout << "ADDRES: " << &config.getServer("_") << std::endl;
     return (0);
 }
 
-// g++ Config.hpp Config.cpp utils.cpp utils.hpp parseTestMain.cpp 

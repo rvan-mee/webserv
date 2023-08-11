@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page not found</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .image-container {
+            margin-top: 20px;
+        }
+        </style>
+</head>
+<body>
+    <div class="content-404">
+        <h1>404</h1>
+        <p>The page you were looking for could not be found.</p>
+        <button type="button" class="gohome" onclick="window.location.href='/html';">Back to home</button>
+    </div>
+    <style>
+        .content-404 {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: center;
+        }
+        .gohome {
+            width: 120px;
+            padding: 10px;
+            border-radius: 50px;
+            border: 0px;
+            background: #ffbf00;
+        }
+        .gohome:hover
+        {
+            background: #ffbf00cf;
+        }
+    </style>
+</body>
+</html>
