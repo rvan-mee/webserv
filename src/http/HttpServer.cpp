@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/11 15:18:50 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/14 18:01:02 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,6 +105,26 @@ void	HttpServer::initServer( Config &config )
 				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
 				if ( kevent( this->kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
 					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
+			    HttpRequest server;
+				    std::string s = "GET / HTTP/1.1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip, deflate\r\nConnection: Closed\r\n\r\n";
+    std::vector<char> v;
+    std::copy(s.begin(), s.end(), std::back_inserter(v));
+				std::string response = server.parseRequestandGiveReponse(v); // Replace with actual response creation
+				std::cout << response;
+				// Convert the response string to bytes
+				const char *responseBytes = response.c_str();
+				// size_t responseSize = response.size();
+
+				// Send the response to the client
+				ssize_t bytesSent = send(clientSocket, responseBytes, (int)strlen(responseBytes), 0);
+				if (bytesSent < 0) {
+					std::cerr << "Failed to send response to client" << std::endl;
+				} else {
+					if (fflush(stdout) != 0) {
+						std::cerr << "Failed to flush output buffers" << std::endl;
+					}
+					std::cout << "eventfd: " << this->event[i].ident << " Sent response: " << responseBytes << std::endl;
+				}
 			}
 
 			/* If the event is not on the serverSocket, it is on a clientSocket.
@@ -154,35 +174,35 @@ std::cout << "Received request: " << buffer.data() << std::endl;
 				This buffer has to be parsed to extract the request information.
 				A function will be created to do this.
 				*/ 
-			    HttpRequest server;
+			    // HttpRequest server;
 
-				// try {
-				// 	std::cout << server.parseRequestandGiveReponse(buffer);
+				// // try {
+				// // 	std::cout << server.parseRequestandGiveReponse(buffer);
+				// // }
+				// // catch (std::exception &e)
+				// // {
+				// // 	std::cerr << e.what() << std::endl;
+				// // 	return;
+				// // }				
+				// /* TODO 2:
+				// After the request has been parsed, the response has to be created.
+				// */
+				// std::string response = server.parseRequestandGiveReponse(buffer); // Replace with actual response creation
+				// std::cout << response;
+				// // Convert the response string to bytes
+				// const char *responseBytes = response.c_str();
+				// // size_t responseSize = response.size();
+
+				// // Send the response to the client
+				// ssize_t bytesSent = send(clientSocketId, responseBytes, (int)strlen(responseBytes), 0);
+				// if (bytesSent < 0) {
+				// 	std::cerr << "Failed to send response to client" << std::endl;
+				// } else {
+				// 	if (fflush(stdout) != 0) {
+				// 		std::cerr << "Failed to flush output buffers" << std::endl;
+				// 	}
+				// 	std::cout << "eventfd: " << this->event[i].ident << " Sent response: " << responseBytes << std::endl;
 				// }
-				// catch (std::exception &e)
-				// {
-				// 	std::cerr << e.what() << std::endl;
-				// 	return;
-				// }				
-				/* TODO 2:
-				After the request has been parsed, the response has to be created.
-				*/
-				std::string response = server.parseRequestandGiveReponse(buffer); // Replace with actual response creation
-				std::cout << response;
-				// Convert the response string to bytes
-				const char *responseBytes = response.c_str();
-				size_t responseSize = response.size();
-
-				// Send the response to the client
-				ssize_t bytesSent = send(eventFd, responseBytes, responseSize, 0);
-				if (bytesSent < 0) {
-					std::cerr << "Failed to send response to client" << std::endl;
-				} else {
-					if (fflush(stdout) != 0) {
-						std::cerr << "Failed to flush output buffers" << std::endl;
-					}
-					std::cout << "Sent response: " << response << std::endl;
-				}
 				close ( eventFd );
 			}
 		}
