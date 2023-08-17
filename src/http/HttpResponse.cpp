@@ -31,17 +31,20 @@ void	HttpResponse::setError(int statusCode, std::string reasonPhrase)
 std::string HttpResponse::buildResponse()
 {
     std::string str;
-    // str+= "HTTP/1.1 ";
-    // str+= std::to_string(_status_code);
-    // str+= " ";
-    // str+= _reason_phrase;
-    // str+= "\r\n";
-    // str+= "Content-Type: ";
-    // str+= _content_type;
-    // str+= "\r\n\r\n";
-    // // str+= _message_body;
-    // str+= "test";
-    // str+= "\r\n";
-    str+= "HTTP/1.1 200 OK\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello, World!</h1>\n</body>\n</html>\n";
+    _status_code = 200;
+    _reason_phrase = "OK";
+    _content_type = "text/html";
+    _message_body = "<html>\n<body>\n<h1>test</h1>\n</body>\n</html>\n";
+    str+= "HTTP/1.1 ";
+    str+= std::to_string(_status_code);
+    str+= " ";
+    str+= _reason_phrase;
+    str+= "\r\n";
+    str+= "Content-Type: ";
+    str+= _content_type;
+    str+= "\r\n\r\n";
+    str+= _message_body;
+    str+= "\r\n";
+    // str+= "HTTP/1.1 500 nope\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello, World!</h1>\n</body>\n</html>\n";
     return (str);
 }

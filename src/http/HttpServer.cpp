@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/14 18:01:02 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/17 14:40:45 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,28 +105,7 @@ void	HttpServer::initServer( Config &config )
 				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
 				if ( kevent( this->kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
 					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
-			    HttpRequest server;
-				    std::string s = "GET / HTTP/1.1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip, deflate\r\nConnection: Closed\r\n\r\n";
-    std::vector<char> v;
-    std::copy(s.begin(), s.end(), std::back_inserter(v));
-				std::string response = server.parseRequestandGiveReponse(v); // Replace with actual response creation
-				std::cout << response;
-				// Convert the response string to bytes
-				const char *responseBytes = response.c_str();
-				// size_t responseSize = response.size();
-
-				// Send the response to the client
-				ssize_t bytesSent = send(clientSocket, responseBytes, (int)strlen(responseBytes), 0);
-				if (bytesSent < 0) {
-					std::cerr << "Failed to send response to client" << std::endl;
-				} else {
-					if (fflush(stdout) != 0) {
-						std::cerr << "Failed to flush output buffers" << std::endl;
-					}
-					std::cout << "eventfd: " << this->event[i].ident << " Sent response: " << responseBytes << std::endl;
-				}
 			}
-
 			/* If the event is not on the serverSocket, it is on a clientSocket.
 			This means that the client has sent data to the server. */
 			else if ( event[i].filter & EVFILT_READ )
@@ -136,31 +115,31 @@ void	HttpServer::initServer( Config &config )
 				if the data received from the client (requestSize) is larger than 
 				1024 bytes. */
 				std::vector<char>	buffer( 1024 );
-				size_t				requestSize = 0;
+				// size_t				requestSize = 0;
 
 				/* With the following loop, the data is read from the client socket until 
 				there is no more data to read. If there is more data to read 
 				(bytesRead == 0), the loop is ended. */
-				while ( true )
-				{
-					// Read the data from the client socket into the buffer
-					ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
+				// while ( true )
+				// {
+				// 	// Read the data from the client socket into the buffer
+				// 	ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
 
-					// Increase the request size by the number of bytes read
-					requestSize += bytesRead;
+				// 	// Increase the request size by the number of bytes read
+				// 	requestSize += bytesRead;
 
-					// Check if there has been an error reading from the client socket
-					if ( bytesRead < 0 )
-						throw ( std::runtime_error( "Failed to read from client socket" ) );
+				// 	// Check if there has been an error reading from the client socket
+				// 	if ( bytesRead < 0 )
+				// 		throw ( std::runtime_error( "Failed to read from client socket" ) );
 
-					// If there is no more data to read, break out of the loop
-					else if ( bytesRead == 0 )
-						break ;
+				// 	// If there is no more data to read, break out of the loop
+				// 	else if ( bytesRead == 0 )
+				// 		break ;
 
-					// If the buffer is full, resize it
-					else if ( requestSize >= buffer.size() )
-						buffer.resize( buffer.size() * 2 );
-				}
+				// 	// If the buffer is full, resize it
+				// 	else if ( requestSize >= buffer.size() )
+				// 		buffer.resize( buffer.size() * 2 );
+				// }
 // Print the request received from the client (FOR TESTING)
 std::cout << "Received request: " << buffer.data() << std::endl;
 
@@ -187,22 +166,26 @@ std::cout << "Received request: " << buffer.data() << std::endl;
 				// /* TODO 2:
 				// After the request has been parsed, the response has to be created.
 				// */
-				// std::string response = server.parseRequestandGiveReponse(buffer); // Replace with actual response creation
-				// std::cout << response;
-				// // Convert the response string to bytes
-				// const char *responseBytes = response.c_str();
-				// // size_t responseSize = response.size();
+			  HttpRequest server;
+				    std::string s = "GET / HTTP/1.1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nAccept-Language: en-us\r\nAccept-Encoding: gzip, deflate\r\nConnection: Closed\r\n\r\n";
+    std::vector<char> v;
+    std::copy(s.begin(), s.end(), std::back_inserter(v));
+				std::string response = server.parseRequestandGiveReponse(v); // Replace with actual response creation
+				std::cout << response;
+				// Convert the response string to bytes
+				const char *responseBytes = response.c_str();
+				// size_t responseSize = response.size();
 
-				// // Send the response to the client
-				// ssize_t bytesSent = send(clientSocketId, responseBytes, (int)strlen(responseBytes), 0);
-				// if (bytesSent < 0) {
-				// 	std::cerr << "Failed to send response to client" << std::endl;
-				// } else {
-				// 	if (fflush(stdout) != 0) {
-				// 		std::cerr << "Failed to flush output buffers" << std::endl;
-				// 	}
-				// 	std::cout << "eventfd: " << this->event[i].ident << " Sent response: " << responseBytes << std::endl;
-				// }
+				// Send the response to the client
+									std::cout << "eventfd: " << eventFd << " Sent response: " << responseBytes << std::endl;
+				ssize_t bytesSent = send(eventFd, responseBytes, (int)strlen(responseBytes), 0);
+				if (bytesSent < 0) {
+					std::cerr << "Failed to send response to client" << std::endl;
+				} else {
+					if (fflush(stdout) != 0) {
+						std::cerr << "Failed to flush output buffers" << std::endl;
+					}
+				}
 				close ( eventFd );
 			}
 		}
