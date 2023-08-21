@@ -6,11 +6,14 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/11 13:37:08 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/21 23:31:05 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HttpServer.hpp" 
+#include <HttpServer.hpp>
+#include <EventHandler.hpp>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <stdexcept> 
 #include <sys/socket.h> 
 #include <netinet/in.h> // sockaddr_in
@@ -67,7 +70,8 @@ void	HttpServer::initServer( Config &config )
 	/* The following loop will continue to execute as long as the condition in the while-loop 
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
-	int			numEvents;
+	int							numEvents;
+	std::vector<EventHandler>	eventList;
 	while ( true )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
@@ -93,6 +97,7 @@ void	HttpServer::initServer( Config &config )
 			an incoming connection from a new client. In that case, the connection 
 			is accepted, and the clientSocket is added to the this->kqueueFd 
 			channel to monitor it for read events (reading data from the client). */
+			std::cout << "caught event" << std::endl;
 			if ( eventFd == this->serverSocket )
 			{
 				int	clientSocket = accept( this->serverSocket, NULL, NULL );
@@ -104,48 +109,68 @@ void	HttpServer::initServer( Config &config )
 				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
 				if ( kevent( this->kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
 					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
+
+				std::cout << "caught accept event!" << std::endl;
+				EventHandler	newEvent(clientSocket, kqueueFd);
+
+				eventList.push_back(newEvent);
+				std::cout << "after push_back!" << std::endl;
 			}
 
 			/* If the event is not on the serverSocket, it is on a clientSocket.
 			This means that the client has sent data to the server. */
 			else if ( event[i].filter & EVFILT_READ )
 			{
+				std::cout << "Caught a read event!" << std::endl;
+				for (size_t i = 0; i < eventList.size(); i++)
+				{
+					if (eventList[i].isEvent(eventFd)) {
+						try {
+							eventList[i].handleRead(eventFd);
+						}
+						catch(const std::exception& e) {
+							std::cerr << e.what() << '\n';
+						}
+						break ;
+					}
+				}
+
 				/* Create a buffer to store the data received from the client.
 				The initial size of the buffer is 1024 bytes. It will be resized later
 				if the data received from the client (requestSize) is larger than 
 				1024 bytes. */
-				std::vector<char>	buffer( 1024 );
-				size_t				requestSize = 0;
+				// std::vector<char>	buffer( 1024 );
+				// size_t				requestSize = 0;
 
 				/* With the following loop, the data is read from the client socket until 
 				there is no more data to read. If there is more data to read 
 				(bytesRead == 0), the loop is ended. */
-				while ( true )
-				{
-					// Read the data from the client socket into the buffer
-					ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
+				// while ( true )
+				// {
+				// 	// Read the data from the client socket into the buffer
+				// 	ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
 
-					// Increase the request size by the number of bytes read
-					requestSize += bytesRead;
+				// 	// Increase the request size by the number of bytes read
+				// 	requestSize += bytesRead;
 
-					// Check if there has been an error reading from the client socket
-					if ( bytesRead < 0 )
-						throw ( std::runtime_error( "Failed to read from client socket" ) );
+				// 	// Check if there has been an error reading from the client socket
+				// 	if ( bytesRead < 0 )
+				// 		throw ( std::runtime_error( "Failed to read from client socket" ) );
 
-					// If there is no more data to read, break out of the loop
-					else if ( bytesRead == 0 )
-						break ;
+				// 	// If there is no more data to read, break out of the loop
+				// 	else if ( bytesRead == 0 )
+				// 		break ;
 
-					// If the buffer is full, resize it
-					else if ( requestSize >= buffer.size() )
-						buffer.resize( buffer.size() * 2 );
-				}
-// Print the request received from the client (FOR TESTING)
-std::cout << "Received request: " << buffer.data() << std::endl;
+				// 	// If the buffer is full, resize it
+				// 	else if ( requestSize >= buffer.size() )
+				// 		buffer.resize( buffer.size() * 2 );
+				// }
+// // Print the request received from the client (FOR TESTING)
+// std::cout << "Received request: " << buffer.data() << std::endl;
 
-			/* If the client had disconnected, close the connection */
-			if ( event[i].flags & EV_EOF )
-				close( eventFd );
+				/* If the client had disconnected, close the connection */
+				if ( event[i].flags & EV_EOF )
+					close( eventFd );
 
 				
 				/* TODO 1:
@@ -158,7 +183,7 @@ std::cout << "Received request: " << buffer.data() << std::endl;
 				After the request has been parsed, the response has to be created.
 				*/
 				
-				close ( eventFd );
+				// close ( eventFd );
 			}
 		}
 	}
@@ -170,6 +195,8 @@ std::cout << "Received request: " << buffer.data() << std::endl;
 */
 void	HttpServer::createSocket( void )
 {
+	int	reuse = 1;
+
 	/* Create socket. The socket function returns an integer that is 
 	used as a file descriptor. AF_INET = IPv4, SOCK_STREAM = TCP, 
 	0 = default protocol */
@@ -178,6 +205,15 @@ void	HttpServer::createSocket( void )
 	/* Check if socket creation was successful. If not, throw error */
 	if ( this->serverSocket < 0 )
 		throw ( std::runtime_error( "Failed to create socket" ) );
+	
+	/* Allow reuse of a socket if it has recently been in use */
+	if (setsockopt(this->serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
+    	throw std::runtime_error( "Failed to set socket options" );
+
+	if (fcntl(this->serverSocket, F_SETFL, O_NONBLOCK) < 0)
+    	throw std::runtime_error( "Failed to set socket to non-blocking" );
+
+  	// TODO: make socket non-blocking
 }
 
 /**
