@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:37:19 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/21 19:50:38 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/22 15:26:10 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,8 +36,6 @@ class CgiHandler
 		~CgiHandler();
 	
 		void	setWriteBuffer( std::vector<char>& buffer );
-		int		getPipeReadFd( void );
-		int		getPipeWriteFd( void );
 
 		bool	isEvent(int fd);
 		void	handleRead( void );

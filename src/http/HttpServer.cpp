@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/21 23:31:05 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/23 15:40:45 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ void	HttpServer::initServer( Config &config )
 	this->bindSocket( config );
 
 	/* Start listening. MAX_CONNECTIONS is defined in HttpServer.hpp */
-	if ( listen( this->serverSocket, MAX_CONNECTIONS ) < 0)
+	if ( listen( _serverSocket, MAX_CONNECTIONS ) < 0)
 		throw ( std::runtime_error( "Failed to start listening" )) ;
 
 //TODO: CODAM will be migrating to Linux soon, 
@@ -71,7 +71,7 @@ void	HttpServer::initServer( Config &config )
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
 	int							numEvents;
-	std::vector<EventHandler>	eventList;
+	int				count = 0;
 	while ( true )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
@@ -80,113 +80,101 @@ void	HttpServer::initServer( Config &config )
 		not passed in the function call. This means the function will wait (block) until at 
 		least one event occurs. If an event occurs, the details of the event are stored 
 		in the array this->event, and the number of events is stored in the variable numEvents.*/
-		numEvents = kevent( this->kqueueFd, NULL, 0, this->event, MAX_CONNECTIONS, NULL );
+		numEvents = kevent( _kqueueFd, NULL, 0, _event, MAX_CONNECTIONS, NULL );
 		if ( numEvents < 0 )
 			throw ( std::runtime_error( "Server Terminated or Failed to wait for events" ) );
-		
-		/* A loop is executed over the received events in this->event to process each one. 
+
+		std::cout << "num of events: " << numEvents << " loop: " << count << std::endl;
+		count++;
+		/* A loop is executed over the received events in _event to process each one. 
 		There are three possible events that can occur: 
 		1. A client has disconnected.
 		2. A new client has connected to the server.
 		3. An existing client has sent data to the server. */
 		for (int i = 0; i < numEvents; i++)
 		{
-			int	eventFd = this->event[i].ident;
+			int	eventFd = _event[i].ident;
 
 			/* If an event is detected on the serverSocket, it typically means 
 			an incoming connection from a new client. In that case, the connection 
-			is accepted, and the clientSocket is added to the this->kqueueFd 
+			is accepted, and the clientSocket is added to the _kqueueFd 
 			channel to monitor it for read events (reading data from the client). */
-			std::cout << "caught event" << std::endl;
-			if ( eventFd == this->serverSocket )
+			if ( eventFd == _serverSocket )
 			{
-				int	clientSocket = accept( this->serverSocket, NULL, NULL );
+				std::cout << "Adding client socket" << std::endl;
+				int	clientSocket = accept( _serverSocket, NULL, NULL );
 				if ( clientSocket < 0 )
 					throw ( std::runtime_error( "Failed to accept connection" ) );
 
 				/* Add the client socket to the kqueue */
 				struct kevent	evSet;
-				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
-				if ( kevent( this->kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
+				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL );
+				if ( kevent( _kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
 					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
 
-				std::cout << "caught accept event!" << std::endl;
-				EventHandler	newEvent(clientSocket, kqueueFd);
+				EventHandler*	newEvent = new EventHandler(clientSocket, _kqueueFd);
 
-				eventList.push_back(newEvent);
-				std::cout << "after push_back!" << std::endl;
+				_eventList.push_back(newEvent);
 			}
 
 			/* If the event is not on the serverSocket, it is on a clientSocket.
 			This means that the client has sent data to the server. */
-			else if ( event[i].filter & EVFILT_READ )
+			else if ( _event[i].filter & EVFILT_READ )
 			{
-				std::cout << "Caught a read event!" << std::endl;
-				for (size_t i = 0; i < eventList.size(); i++)
-				{
-					if (eventList[i].isEvent(eventFd)) {
-						try {
-							eventList[i].handleRead(eventFd);
-						}
-						catch(const std::exception& e) {
-							std::cerr << e.what() << '\n';
-						}
-						break ;
-					}
+				std::cout << "Handling read event" << std::endl;
+				int	eventIndex = this->getEventIndex(eventFd);
+
+				if (eventIndex == -1)
+					continue ;
+
+				try {
+					_eventList[eventIndex]->handleRead(eventFd);
+				}
+				catch(const std::exception& e) {
+					std::cerr << e.what() << std::endl;
 				}
 
-				/* Create a buffer to store the data received from the client.
-				The initial size of the buffer is 1024 bytes. It will be resized later
-				if the data received from the client (requestSize) is larger than 
-				1024 bytes. */
-				// std::vector<char>	buffer( 1024 );
-				// size_t				requestSize = 0;
-
-				/* With the following loop, the data is read from the client socket until 
-				there is no more data to read. If there is more data to read 
-				(bytesRead == 0), the loop is ended. */
-				// while ( true )
-				// {
-				// 	// Read the data from the client socket into the buffer
-				// 	ssize_t	bytesRead = recv( eventFd, buffer.data() + requestSize, buffer.size(), 0 );
-
-				// 	// Increase the request size by the number of bytes read
-				// 	requestSize += bytesRead;
-
-				// 	// Check if there has been an error reading from the client socket
-				// 	if ( bytesRead < 0 )
-				// 		throw ( std::runtime_error( "Failed to read from client socket" ) );
-
-				// 	// If there is no more data to read, break out of the loop
-				// 	else if ( bytesRead == 0 )
-				// 		break ;
-
-				// 	// If the buffer is full, resize it
-				// 	else if ( requestSize >= buffer.size() )
-				// 		buffer.resize( buffer.size() * 2 );
+				// /* If the client had disconnected, close the connection */
+				// if ( _event[i].flags & EV_EOF ) { // should this be inside the READ if statement or outside of it?
+				// 	std::cout << "Removing client connection" << std::endl;
+				// 	delete _eventList[eventIndex];
+				// 	_eventList.erase(_eventList.begin() + eventIndex);
+				// 	close(eventFd);
 				// }
-// // Print the request received from the client (FOR TESTING)
-// std::cout << "Received request: " << buffer.data() << std::endl;
 
-				/* If the client had disconnected, close the connection */
-				if ( event[i].flags & EV_EOF )
-					close( eventFd );
 
-				
 				/* TODO 1:
 				The data received from the client is now stored in the buffer.
 				This buffer has to be parsed to extract the request information.
 				A function will be created to do this.
 				*/ 
-				
+
 				/* TODO 2:
 				After the request has been parsed, the response has to be created.
 				*/
-				
-				// close ( eventFd );
+			}
+			/* If the client had disconnected, close the connection */
+			if ( _event[i].flags & EV_EOF ) {
+				std::cout << "Removing client connection" << std::endl;
+				int	eventIndex = this->getEventIndex(eventFd);
+
+				if (eventIndex == -1)
+					continue ;
+				delete _eventList[eventIndex];
+				_eventList.erase(_eventList.begin() + eventIndex);
+				close(eventFd);
 			}
 		}
 	}
+}
+
+int	HttpServer::getEventIndex( int fd )
+{
+	for (size_t i = 0; i < _eventList.size(); i++) {
+		if (_eventList[i]->isEvent(fd))
+			return (i);
+	}
+	return (-1);
 }
 
 /**
@@ -200,17 +188,17 @@ void	HttpServer::createSocket( void )
 	/* Create socket. The socket function returns an integer that is 
 	used as a file descriptor. AF_INET = IPv4, SOCK_STREAM = TCP, 
 	0 = default protocol */
-	this->serverSocket = socket( AF_INET, SOCK_STREAM, 0 );
+	_serverSocket = socket( AF_INET, SOCK_STREAM, 0 );
 	
 	/* Check if socket creation was successful. If not, throw error */
-	if ( this->serverSocket < 0 )
+	if ( _serverSocket < 0 )
 		throw ( std::runtime_error( "Failed to create socket" ) );
 	
 	/* Allow reuse of a socket if it has recently been in use */
-	if (setsockopt(this->serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
+	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
     	throw std::runtime_error( "Failed to set socket options" );
 
-	if (fcntl(this->serverSocket, F_SETFL, O_NONBLOCK) < 0)
+	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
     	throw std::runtime_error( "Failed to set socket to non-blocking" );
 
   	// TODO: make socket non-blocking
@@ -223,12 +211,12 @@ void	HttpServer::createSocket( void )
 */
 void	HttpServer::bindSocket( Config &config )
 {
-	this->address.sin_family = AF_INET; // IPv4
-	this->address.sin_addr.s_addr = INADDR_ANY; // Listen on all interfaces
-	this->address.sin_port = htons( config.getListen()[0] ); // Port to listen on
+	_address.sin_family = AF_INET; // IPv4
+	_address.sin_addr.s_addr = INADDR_ANY; // Listen on all interfaces
+	_address.sin_port = htons( config.getListen()[0] ); // Port to listen on
 
 	/* Bind socket to port. If it fails, throw an error */
-	if ( bind( this->serverSocket, ( struct sockaddr * )&this->address, sizeof( this->address ) ) < 0 )
+	if ( bind( _serverSocket, ( struct sockaddr * )&_address, sizeof( _address ) ) < 0 )
 		throw ( std::runtime_error( "Failed to bind socket to port" ) );
 }
 
@@ -242,8 +230,8 @@ void	HttpServer::setKqueue( void )
 	It allows the user to monitor multiple file descriptors to see if
 	they are ready for reading or writing.
 	 */
-	this->kqueueFd = kqueue();
-	if ( this->kqueueFd < 0 )
+	_kqueueFd = kqueue();
+	if ( _kqueueFd < 0 )
 		throw ( std::runtime_error( "Failed to create kqueue" ) );
 
 	/* Set event. The parameters of EV_SET are as follows:
@@ -261,9 +249,9 @@ void	HttpServer::setKqueue( void )
 	in the event of an event. Here it is NULL because we don't need to pass
 	any data to the callback function.
 	*/
-	EV_SET( this->event, this->serverSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
+	EV_SET( _event, _serverSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
 
 	// Kevent is used to register events with the kqueue and to monitor them for changes.
-	if ( kevent( this->kqueueFd, this->event, 1, NULL, 0, NULL ) < 0 )
+	if ( kevent( _kqueueFd, _event, 1, NULL, 0, NULL ) < 0 )
 		throw ( std::runtime_error( "Failed to set event" ) );
 }

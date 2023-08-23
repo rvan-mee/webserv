@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/21 19:59:38 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/23 15:31:12 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,16 +36,6 @@ CgiHandler::~CgiHandler()
 		close(_pipeWrite);	
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) // TODO: does the waitpid work?? gotta test
 		kill(_forkPid, SIGKILL);
-}
-
-int	CgiHandler::getPipeReadFd( void )
-{
-	return (_pipeRead);
-}
-
-int	CgiHandler::getPipeWriteFd( void )
-{
-	return (_pipeWrite);
 }
 
 void	CgiHandler::setWriteBuffer( std::vector<char>& buffer )

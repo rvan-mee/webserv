@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/08 13:59:24 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/23 12:50:52 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,15 +18,19 @@
 #include <Config.hpp>
 #include <netinet/in.h> // sockaddr_in
 #include <sys/event.h> // kqueue
+#include <EventHandler.hpp>
 
 class HttpServer
 {
 private:
 
-	int				serverSocket;
-	sockaddr_in 	address;
-	int				kqueueFd;
-	struct kevent	event[ MAX_CONNECTIONS + 1 ];
+	int							_serverSocket;
+	sockaddr_in 				_address;
+	int							_kqueueFd;
+	struct kevent				_event[ MAX_CONNECTIONS + 1 ];
+	std::vector<EventHandler*>	_eventList;
+
+	int	getEventIndex( int fd);
 
 public:
 
