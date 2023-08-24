@@ -6,12 +6,13 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/23 15:40:45 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/24 21:56:17 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <HttpServer.hpp>
 #include <EventHandler.hpp>
+#include <KqueueUtils.hpp>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdexcept> 
@@ -63,15 +64,12 @@ void	HttpServer::initServer( Config &config )
 	if ( listen( _serverSocket, MAX_CONNECTIONS ) < 0)
 		throw ( std::runtime_error( "Failed to start listening" )) ;
 
-//TODO: CODAM will be migrating to Linux soon, 
-//so kqueue will have to be changed to epoll maybe.
 	this->setKqueue();
 
 	/* The following loop will continue to execute as long as the condition in the while-loop 
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
-	int							numEvents;
-	int				count = 0;
+	int	numEvents;
 	while ( true )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
@@ -84,8 +82,6 @@ void	HttpServer::initServer( Config &config )
 		if ( numEvents < 0 )
 			throw ( std::runtime_error( "Server Terminated or Failed to wait for events" ) );
 
-		std::cout << "num of events: " << numEvents << " loop: " << count << std::endl;
-		count++;
 		/* A loop is executed over the received events in _event to process each one. 
 		There are three possible events that can occur: 
 		1. A client has disconnected.
@@ -107,59 +103,42 @@ void	HttpServer::initServer( Config &config )
 					throw ( std::runtime_error( "Failed to accept connection" ) );
 
 				/* Add the client socket to the kqueue */
-				struct kevent	evSet;
-				EV_SET( &evSet, clientSocket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL );
-				if ( kevent( _kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
-					throw ( std::runtime_error( "Failed to add client socket to kqueue" ) );
+				addKqueueEventFilter(_kqueueFd, clientSocket, EVFILT_READ);
 
 				EventHandler*	newEvent = new EventHandler(clientSocket, _kqueueFd);
-
 				_eventList.push_back(newEvent);
+				continue ;
 			}
+
+			int	eventIndex = this->getEventIndex(eventFd);
+			if (eventIndex == -1)
+				continue ;
 
 			/* If the event is not on the serverSocket, it is on a clientSocket.
 			This means that the client has sent data to the server. */
-			else if ( _event[i].filter & EVFILT_READ )
+			if ( _event[i].filter & EVFILT_READ )
 			{
 				std::cout << "Handling read event" << std::endl;
-				int	eventIndex = this->getEventIndex(eventFd);
-
-				if (eventIndex == -1)
-					continue ;
-
 				try {
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
 				catch(const std::exception& e) {
 					std::cerr << e.what() << std::endl;
 				}
-
-				// /* If the client had disconnected, close the connection */
-				// if ( _event[i].flags & EV_EOF ) { // should this be inside the READ if statement or outside of it?
-				// 	std::cout << "Removing client connection" << std::endl;
-				// 	delete _eventList[eventIndex];
-				// 	_eventList.erase(_eventList.begin() + eventIndex);
-				// 	close(eventFd);
-				// }
-
-
-				/* TODO 1:
-				The data received from the client is now stored in the buffer.
-				This buffer has to be parsed to extract the request information.
-				A function will be created to do this.
-				*/ 
-
-				/* TODO 2:
-				After the request has been parsed, the response has to be created.
-				*/
+			}
+			else if ( _event[i].filter & EVFILT_WRITE )
+			{
+				std::cout << "Handling write event" << std::endl;
+				try {
+					_eventList[eventIndex]->handleWrite(eventFd);
+				}
+				catch(const std::exception& e) {
+					std::cerr << e.what() << std::endl;
+				}
 			}
 			/* If the client had disconnected, close the connection */
 			if ( _event[i].flags & EV_EOF ) {
-				std::cout << "Removing client connection" << std::endl;
-				int	eventIndex = this->getEventIndex(eventFd);
-
-				if (eventIndex == -1)
-					continue ;
+				std::cout << "Closing client connection" << std::endl;
 				delete _eventList[eventIndex];
 				_eventList.erase(_eventList.begin() + eventIndex);
 				close(eventFd);
@@ -198,10 +177,9 @@ void	HttpServer::createSocket( void )
 	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
     	throw std::runtime_error( "Failed to set socket options" );
 
+	/* Sets the socket to non-blocking */
 	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
     	throw std::runtime_error( "Failed to set socket to non-blocking" );
-
-  	// TODO: make socket non-blocking
 }
 
 /**

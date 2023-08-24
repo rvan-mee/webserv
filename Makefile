@@ -20,6 +20,7 @@ CGI_DIR				:=	cgi
 CONFIG_DIR			:=	config
 SOCKET_DIR			:=	socket
 HTTP_DIR			:=	http
+UTILS_DIR			:=	utils
 OBJ_DIR				:=	obj
 
 ################################################################################
@@ -37,13 +38,16 @@ CONFIG_SRCS			:=	Config.cpp			\
 HTTP_SRCS			:= 	HttpServer.cpp		\
 						EventHandler.cpp
 
-SOCKET_SRCS			:=
+# SOCKET_SRCS			:=
+
+UTILS_SRCS			:=	KqueueUtils.cpp
 
 SRCS				:= $(MAIN)
 SRCS				+= $(addprefix $(CGI_DIR)/, $(CGI_SRCS))
 SRCS				+= $(addprefix $(CONFIG_DIR)/, $(CONFIG_SRCS))
 SRCS				+= $(addprefix $(SOCKET_DIR)/, $(SOCKET_SRCS))
 SRCS				+= $(addprefix $(HTTP_DIR)/, $(HTTP_SRCS))
+SRCS				+= $(addprefix $(UTILS_DIR)/, $(UTILS_SRCS))
 
 SRCP				:= $(addprefix $(SRC_DIR)/, $(SRCS))
 
@@ -62,15 +66,19 @@ CONFIG_INCS			:=	Config.hpp			\
 HTTP_INCS			:=	HttpServer.hpp		\
 						EventHandler.hpp
 
+UTILS_INCS			:=	KqueueUtils.hpp						
+
 INCS				+= $(addprefix $(CGI_DIR)/, $(CGI_INCS))
 INCS				+= $(addprefix $(CONFIG_DIR)/, $(CONFIG_INCS))
 INCS				+= $(addprefix $(SOCKET_DIR)/, $(SOCKET_INCS))
 INCS				+= $(addprefix $(HTTP_DIR)/, $(HTTP_INCS))
+INCS				+= $(addprefix $(UTILS_DIR)/, $(UTILS_INCS))
 
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(CGI_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(CONFIG_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(SOCKET_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(HTTP_DIR)/)
+INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(UTILS_DIR)/)
 
 INCLUDE				:= $(INC_DIRS)
 

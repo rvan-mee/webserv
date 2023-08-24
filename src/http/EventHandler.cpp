@@ -6,16 +6,18 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/23 19:55:58 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/24 22:00:20 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <EventHandler.hpp>
+#include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <unistd.h>
+#include <stdlib.h>
 
-#define READ_SIZE 10
+#define READ_SIZE 1024
 #define WRITE_SIZE 1024
 
 #define READ 0
@@ -27,6 +29,11 @@ EventHandler::EventHandler( int socketFd, int kqueueFd ) :
 	_cgi(kqueueFd),
 	_bytesWritten(0)
 {
+	_requestData.totalBytesRead = 0;
+	_requestData.headerSize = 0;
+	_requestData.contentLength = 0;
+	_requestData.readHeaders = false;
+	_requestData.contentLengthSet = false;
 }
 
 EventHandler::~EventHandler()
@@ -43,31 +50,86 @@ bool	EventHandler::isEvent( int fd )
 
 #include <iostream>
 
+static bool	checkIfHeadersAreRead( t_requestData& requestData )
+{
+	std::vector<char>::iterator	it;
+	const std::vector<char>		endOfHeaders = {'\r','\n','\r','\n'};
+	std::vector<char>&			buffer = requestData.buffer;
+
+	// if the iterator is not set to the end of buffer then we have found our substring
+	it = std::search(buffer.begin(), buffer.end(), endOfHeaders.begin(), endOfHeaders.end());
+	if (it != buffer.end()) {
+		requestData.readHeaders = true;
+		requestData.headerSize = it - buffer.begin() + 4;
+		return (true);
+	}
+	return (false);
+}
+
+static void	setContentLength( t_requestData& requestData )
+{
+	std::string	headers(requestData.buffer.data());
+	size_t		pos;
+
+	pos = headers.find("Content-Length");
+	if (pos == std::string::npos)
+		return ;
+	if (pos + 16 > headers.length())
+		return ;
+	requestData.contentLength = atoi(&headers[pos + 16]);
+	requestData.contentLengthSet = true;
+}
+
+static bool	allRequestDataRead( t_requestData& requestData )
+{
+	if (requestData.readHeaders == false) {
+		if (checkIfHeadersAreRead(requestData) == false)
+			return (false);
+		setContentLength(requestData);
+	}
+
+	if (requestData.contentLengthSet == false) {
+		return (true);
+	}
+
+	if (requestData.totalBytesRead - requestData.headerSize == requestData.contentLength)
+		return (true);
+	return (false);
+}
+
+static void	readIntoBuffer( int socketFd, t_requestData& requestData )
+{
+	std::vector<char>&	buffer = requestData.buffer;
+	std::vector<char>	newRead(READ_SIZE);
+	int					bytesRead;
+
+	bytesRead = recv( socketFd, newRead.data(), READ_SIZE, 0 );
+	if (bytesRead < 0)
+		throw ( std::runtime_error("Failed to read from socket") );
+
+	buffer.insert(buffer.end(), newRead.begin(), newRead.end());
+	requestData.totalBytesRead += bytesRead;
+}
+
 void	EventHandler::handleRead( int fd )
 {
-	std::vector<char>	newRead(READ_SIZE);
-	ssize_t				bytesRead;
-
 	if (fd != _socketFd) {
 		_cgi.handleRead();
 		return ;
 	}
 
-	bytesRead = recv( this->_socketFd, newRead.data(), READ_SIZE, 0 );
-	if (bytesRead < 0) {
-		throw ( std::runtime_error("Failed to read from socket") );
+	readIntoBuffer(_socketFd, _requestData );
+	// if all of the data we expect has not been read yet we add another event filter
+	// and wait more more data to be available for reading
+	if (!allRequestDataRead(_requestData)) {
+		addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_READ);
+		return ;
 	}
-	_socketReadBuffer.insert(_socketReadBuffer.end(), newRead.begin(), newRead.end());
-	std::cout << "total bytes read: " << _socketReadBuffer.size() << std::endl;
-	std::cout << "bytes read: " << bytesRead << std::endl << std::endl;
 
-	struct kevent	evSet;
-	// Adding the read event back to kqueue, using EV_CLEAR it removes it after it has been handled.
-	EV_SET( &evSet, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL );
-	if ( kevent( _kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
-		throw ( std::runtime_error( "Failed to add a read event to kqueue" ) );
-	// TODO: check for /r/n/r/n to get to the end of the headers.
-	// After that check if content-length is defined and read till we reached that length.
+	// all data has been read, now we can parse and prepare a response
+	std::cout << "Request: " << _requestData.buffer.data() << std::endl;
+	// Start parsing the request data
+	// Go into CGI or create a response
 }
 
 void	EventHandler::handleWrite( int fd )
@@ -82,8 +144,5 @@ void	EventHandler::handleWrite( int fd )
 	// TODO: send data back to socket
 
 	// if all data hasn't been sent yet:
-	struct kevent	evSet;
-	EV_SET( &evSet, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, NULL );
-	if ( kevent( _kqueueFd, &evSet, 1, NULL, 0, NULL ) < 0 )
-		throw ( std::runtime_error( "Failed to add a write event to kqueue" ) );
+	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 }
