@@ -54,11 +54,7 @@ std::string HttpResponse::buildResponse()
 	{
 		std::cout << "Error opening file";
 	}
-	// std::ifstream t("../../html/index.html");
-	// std::stringstream buffer;
-	// buffer << t.rdbuf();
 	str += s;
-	// std::cout << "buffer" << buffer.str() << std::endl;
 	// str+= _message_body;
 	str += "\r\n";
 	// str+= "HTTP/1.1 500 nope\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello,

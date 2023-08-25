@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/24 13:53:17 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/25 13:45:58 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,6 @@ class HttpResponse
 	void setContentType(std::string contentType);
 	void addLineToBody(std::string line);
 	void printAll();
-	// void	setStatusCode(int statusCode);
-	// void	setReasonPhrase(std::string);
 	void setError(int statusCode, std::string _reason_phrase);
 	std::string buildResponse();
 

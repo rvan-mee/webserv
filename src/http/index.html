@@ -34,10 +34,15 @@
         <img src="https://media.giphy.com/media/3o7aDcz6Y0fzWYvU5G/giphy.gif" alt="Twerk" width="300" height="300">
         <p>Code 'n Twerk: Webserver Work</p>
         <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button>
-        <form action="/" method="POST">
-            <input type="file" id="myFile" name="filename">
-            <input type="submit">
-        </form>
+        <form method="post" action="/" enctype="multipart/form-data">
+            <div>
+              <label for="file">Choose a file</label>
+              <input type="file" id="file" name="myFile" />
+            </div>
+            <div>
+              <button>Send the file</button>
+            </div>
+          </form>
         <!-- <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button> -->
 
     </div>
