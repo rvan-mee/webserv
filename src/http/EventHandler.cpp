@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/25 13:41:16 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/25 21:04:43 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,23 +69,26 @@ static bool	checkIfHeadersAreRead( t_requestData& requestData )
 
 static void	setContentLength( t_requestData& requestData )
 {
-	std::string	headers(requestData.buffer.data());
-	size_t		pos;
+	std::vector<char>&				buffer = requestData.buffer;
+	const char*						cLength = "Content-Length:";
+	std::vector<char>::iterator 	it;
+	
+	it = std::search(buffer.begin(), buffer.end(), cLength, cLength + 16);
 
-	pos = headers.find("Content-Length");
-	if (pos == std::string::npos)
+	if (it == buffer.end())
 		return ;
-	if (pos + 16 > headers.length())
+	if (it + 16 > buffer.end())
 		return ;
-	requestData.contentLength = atoi(&headers[pos + 16]);
-	std::cout << "Content-Length: " << requestData.contentLength << std::endl;
+
+	int	contentLengthIndex = it - buffer.begin() + 16;
+	requestData.contentLength = atoi(&buffer[contentLengthIndex]);
 	requestData.contentLengthSet = true;
 }
 
 static bool	allRequestDataRead( t_requestData& requestData )
 {
 	if (requestData.readHeaders == false) {
-		if (checkIfHeadersAreRead(requestData) == false)
+		if (!checkIfHeadersAreRead(requestData))
 			return (false);
 		setContentLength(requestData);
 	}
@@ -128,43 +131,40 @@ void	EventHandler::handleRead( int fd )
 		return ;
 	}
 
+	std::cout << "Received all data" << std::endl;
 	// all data has been read, now we can parse and prepare a response
-	std::cout << "Request: " << _requestData.buffer.data() << std::endl;
-	// Start parsing the request data
 	HttpRequest server;
-	
-	// std::vector<char> v;
-	// std::copy(s.begin(), s.end(), std::back_inserter(v));
-	std::string response = server.parseRequestandGiveReponse(_requestData.buffer);
-	
-	// Convert the response string to bytes
-	const char *responseBytes = response.c_str();
-	// size_t responseSize = response.size();
-	// Send the response to the client
-	ssize_t bytesSent = send(_socketFd, responseBytes,
-	(int)strlen(responseBytes), 0);
-	if (bytesSent < 0) {
-		std::cerr << "Failed to send response to client" << std::endl;
-	} else {
-		if (fflush(stdout) != 0) {
-			std::cerr << "Failed to flush output buffers" << std::endl;
-		}
-	}
-	std::cout << "eventfd: " << _socketFd << " Sent response: " << responseBytes << std::endl;
+
+	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
+	_response = server.parseRequestAndGiveResponse(_requestData.buffer);
+	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 }
 
 void	EventHandler::handleWrite( int fd )
 {
-	int	bytesWrote;
-
 	if (fd != _socketFd) {
 		_cgi.handleWrite();
 		return ;
 	}
 
-	// TODO: send data back to socket
+	size_t	bytesToWrite = WRITE_SIZE;
+	if (bytesToWrite > _response.size())
+		bytesToWrite = _response.size();
+
+	// Send the response to the client
+	ssize_t bytesSent = send(_socketFd, _response.c_str(),
+	bytesToWrite, 0);
+	if (bytesSent < 0)
+		throw ( std::runtime_error("Failed to send response to client") );
+
+	_response.erase(0, bytesSent);
 
 	// if all data hasn't been sent yet:
-	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
+	if (_response.size() != 0) {
+		addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
+		return ;
+	}
+
+	std::cout << "Sent all data" << std::endl;
 }

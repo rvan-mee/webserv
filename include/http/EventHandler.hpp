@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:20:05 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/24 21:44:11 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/25 16:31:18 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 # define EVENTHANDLER_HPP
 
 #include <CgiHandler.hpp>
+#include <string>
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
@@ -33,7 +34,7 @@ class EventHandler
 		int					_socketFd;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
-		std::vector<char>	_socketWriteBuffer;
+		std::string			_response;
 		int					_bytesWritten;
 
 	public:

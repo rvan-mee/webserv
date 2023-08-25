@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 10:45:26 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/25 16:21:30 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,10 +23,10 @@
 class HttpServer
 {
   private:
-	int _serverSocket;
-	sockaddr_in _address;
-	int _kqueueFd;
-	struct kevent _event[MAX_CONNECTIONS + 1];
+	int							_serverSocket;
+	sockaddr_in					_address;
+	int							_kqueueFd;
+	struct kevent				_event[MAX_CONNECTIONS + 1];
 	std::vector<EventHandler *> _eventList;
 
 	int getEventIndex(int fd);

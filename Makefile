@@ -1,7 +1,7 @@
 
 NAME				:=	webserv
 CC					:=	c++
-CFLAGS				:=	-Wall -Wextra -std=c++11 -pedantic
+CFLAGS				:=	-Wall -Wextra -std=c++11 -pedantic #-fsanitize=address -g
 
 ################################################################################
 # COLORS

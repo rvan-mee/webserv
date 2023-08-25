@@ -103,7 +103,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -113,7 +113,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
     bool emptyLineFound = false;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        std::cout << "line " << line;
+        // std::cout << "line " << line;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
@@ -123,7 +123,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
         else // body line
             addLineToBody(line);
     }
-    printAll();
+    // printAll();
     return (response.buildResponse());
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the

@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 13:38:01 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/25 21:01:30 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,12 @@
 
 #include <chrono>
 #include <thread>
+
+#define RESET   "\033[0m"
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define BLUE    "\033[34m"      /* Blue */
+
 
 /******************************
 * Constructors & Destructors
@@ -86,10 +92,14 @@ void	HttpServer::initServer( Config &config )
 		There are three possible events that can occur: 
 		1. A client has disconnected.
 		2. A new client has connected to the server.
-		3. An existing client has sent data to the server. */
+		3. The server has to read from an fd.
+		4. The server has to write to an fd. */
 		for (int i = 0; i < numEvents; i++)
 		{
 			int	eventFd = _event[i].ident;
+			// std::cout << "\n\nNew event on fd: " << eventFd << "\nfilter: "\
+						// << (_event[i].filter == EVFILT_READ ? "READ" : "WRITE") << "\nflags: "\
+						// << _event[i].flags << "\nfflags: " << _event[i].fflags << std::endl;
 
 			/* If an event is detected on the serverSocket, it typically means 
 			an incoming connection from a new client. In that case, the connection 
@@ -107,18 +117,23 @@ void	HttpServer::initServer( Config &config )
 
 				EventHandler*	newEvent = new EventHandler(clientSocket, _kqueueFd);
 				_eventList.push_back(newEvent);
-				continue ;
 			}
 
+			/* If the event is not on the serverSocket, we dont need to accept any new requests.
+			This means that the we can perform a read or write operation on a different fd */
 			int	eventIndex = this->getEventIndex(eventFd);
 			if (eventIndex == -1)
 				continue ;
 
-			/* If the event is not on the serverSocket, it is on a clientSocket.
-			This means that the client has sent data to the server. */
-			if ( _event[i].filter & EVFILT_READ )
-			{
-				std::cout << "Handling read event" << std::endl;
+			/* If the client had disconnected, close the connection */
+			if ( _event[i].flags & EV_EOF ) {
+				std::cout << RED "Closing client connection" RESET << std::endl;
+				delete _eventList[eventIndex];
+				_eventList.erase(_eventList.begin() + eventIndex);
+				close(eventFd);
+			}
+			else if ( _event[i].filter == EVFILT_READ ) {
+				std::cout << GREEN "Handling read event" RESET << std::endl;
 				try {
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
@@ -126,22 +141,14 @@ void	HttpServer::initServer( Config &config )
 					std::cerr << e.what() << std::endl;
 				}
 			}
-			else if ( _event[i].filter & EVFILT_WRITE )
-			{
-				std::cout << "Handling write event" << std::endl;
+			else if ( _event[i].filter == EVFILT_WRITE) {
+				std::cout << BLUE "Handling write event" RESET << std::endl;
 				try {
 					_eventList[eventIndex]->handleWrite(eventFd);
 				}
 				catch(const std::exception& e) {
 					std::cerr << e.what() << std::endl;
 				}
-			}
-			/* If the client had disconnected, close the connection */
-			if ( _event[i].flags & EV_EOF ) {
-				std::cout << "Closing client connection" << std::endl;
-				delete _eventList[eventIndex];
-				_eventList.erase(_eventList.begin() + eventIndex);
-				close(eventFd);
 			}
 		}
 	}
