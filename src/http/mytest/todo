@@ -1,0 +1,5 @@
+- add serverName from config in http response
+- make ability to import error pages from config
+- add right error codes in current parser
+- cgi output parser python
+- 
