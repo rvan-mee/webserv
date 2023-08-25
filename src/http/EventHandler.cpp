@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/24 22:00:20 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/25 13:41:16 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <sys/event.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <HttpRequest.hpp>
 
 #define READ_SIZE 1024
 #define WRITE_SIZE 1024
@@ -77,6 +78,7 @@ static void	setContentLength( t_requestData& requestData )
 	if (pos + 16 > headers.length())
 		return ;
 	requestData.contentLength = atoi(&headers[pos + 16]);
+	std::cout << "Content-Length: " << requestData.contentLength << std::endl;
 	requestData.contentLengthSet = true;
 }
 
@@ -129,6 +131,26 @@ void	EventHandler::handleRead( int fd )
 	// all data has been read, now we can parse and prepare a response
 	std::cout << "Request: " << _requestData.buffer.data() << std::endl;
 	// Start parsing the request data
+	HttpRequest server;
+	
+	// std::vector<char> v;
+	// std::copy(s.begin(), s.end(), std::back_inserter(v));
+	std::string response = server.parseRequestandGiveReponse(_requestData.buffer);
+	
+	// Convert the response string to bytes
+	const char *responseBytes = response.c_str();
+	// size_t responseSize = response.size();
+	// Send the response to the client
+	ssize_t bytesSent = send(_socketFd, responseBytes,
+	(int)strlen(responseBytes), 0);
+	if (bytesSent < 0) {
+		std::cerr << "Failed to send response to client" << std::endl;
+	} else {
+		if (fflush(stdout) != 0) {
+			std::cerr << "Failed to flush output buffers" << std::endl;
+		}
+	}
+	std::cout << "eventfd: " << _socketFd << " Sent response: " << responseBytes << std::endl;
 	// Go into CGI or create a response
 }
 
