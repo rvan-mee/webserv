@@ -123,7 +123,15 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
         else // body line
             addLineToBody(line);
     }
-    printAll();
+    // printAll();
+    std::string filePath = "uploads/test.jpeg";
+	std::ofstream uploadFile(filePath, std::ios::binary);
+	if (uploadFile) {
+		uploadFile.write(_message_body.c_str(), _message_body.size());
+		std::cout << "File saved: " << filePath << std::endl;
+	} else {
+		std::cerr << "Failed to save the file" << std::endl;
+	}
     return (response.buildResponse());
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
