@@ -22,13 +22,7 @@ std::string extractContent(const std::string &inputText, const std::string &boun
                 extractedContent << line << "\n";
             }
         }
-        // if (line == boundary) {
-        //     contentStarted = !contentStarted;
-        // } else if (contentStarted && line.find("Content-Type:") != std::string::npos) {
-        //     continue;
-        // } else if (contentStarted) {
-        //     extractedContent << line << "\n";
-        // }
+
     }
     return extractedContent.str();
 }

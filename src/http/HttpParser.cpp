@@ -97,6 +97,29 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
     if (v[0] == "Host")
         setHost(v[1]);
 }
+std::string extractContent(const std::string &inputText, const std::string &boundary) {
+  std::istringstream input(inputText);
+    std::string line;
+    std::ostringstream extractedContent;
+        std::cout << "inputText" << inputText << std::endl;
+
+    while (std::getline(input, line)) {
+        if (line.find("Content-Type:") != std::string::npos)
+        {
+
+            while (std::getline(input, line))
+            {
+                std::cout << "line" << line << std::endl;
+                if (line.find(boundary) != std::string::npos)
+                  break;
+                extractedContent << line << "\n";
+            }
+        }
+        // if (line.find(boundary) != std::string::npos)
+        //     break;
+    }
+    return extractedContent.str();
+}
 
 /**
  * @brief Parse the request and save the information
@@ -124,14 +147,30 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
             addLineToBody(line);
     }
     // printAll();
-    std::string filePath = "uploads/test.jpeg";
-	std::ofstream uploadFile(filePath, std::ios::binary);
-	if (uploadFile) {
-		uploadFile.write(_message_body.c_str(), _message_body.size());
-		std::cout << "File saved: " << filePath << std::endl;
-	} else {
-		std::cerr << "Failed to save the file" << std::endl;
-	}
+
+    std::cout << "request method: " << _request_method << std::endl;
+    if (_request_method == 1)
+    {
+            std::string filePath = "uploads/test.txt";
+	// std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
+	std::ofstream uploadFile(filePath);
+        std::string content = extractContent(_message_body, "------");
+        std::cout << "content " << content << " end content" << std::endl;
+        if (!content.empty()) {
+            std::cout << content << std::endl;
+        } else {
+            std::cout << "Content not found." << std::endl;
+        }
+        if (uploadFile.is_open()) {
+            // uploadFile.write(content.c_str(), content.size());
+            uploadFile << content;
+            uploadFile.close();
+            std::cout << "File saved: " << filePath << std::endl;
+        } else {
+            std::cerr << "Failed to save the file" << std::endl;
+        }
+    }
+  
     return (response.buildResponse());
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
