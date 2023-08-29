@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/06 14:16:31 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/28 16:45:36 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/29 15:16:31 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,13 +24,16 @@ int main()
     Config      config;
     HttpServer  httpServer;
 
-    int pipefd[2];
+    int pipefd1[2];
+    int pipefd2[2];
     char *args[] = { "python", "/Users/cpost/Desktop/webserv/src/test.py", NULL };
     char *env[] = { NULL };
 
     try 
     {
-        if (pipe(pipefd) == -1)
+        if (pipe(pipefd1) == -1)
+            throw std::runtime_error("Failed to create pipe");
+        if (pipe(pipefd2) == -1)
             throw std::runtime_error("Failed to create pipe");
 
         pid_t pid = fork();
@@ -41,11 +44,6 @@ int main()
         }
         else if (pid == 0)
         {
-            // Kindproces: leid de standaarduitvoerstroom om naar de schrijfzijde van de pipe
-            close(pipefd[0]);
-            dup2(pipefd[1], STDOUT_FILENO);
-            close(pipefd[1]);
-
             // Voer het Python-script uit
             execve(PYTHON_PATH, args, env);
             std::cerr << "Error executing Python script" << std::endl;
@@ -54,7 +52,10 @@ int main()
         else
         {
             // Ouderproces: lees de leeszijde van de pipe en druk de inhoud af
-            close(pipefd[1]);
+            close(pipefd1[1]); // write
+            close(pipefd2[0]); // read
+            _pipeWrite = pipefd2[1];
+            _pipeRead = pipefd1[0];
             char buffer[4024];
             ssize_t nread;
             while ((nread = read(pipefd[0], buffer, sizeof(buffer))) != 0)
