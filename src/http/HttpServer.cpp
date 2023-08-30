@@ -6,12 +6,12 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 21:01:30 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/29 14:13:25 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <HttpServer.hpp>
-#include <EventHandler.hpp>
+#include <ClientHandler.hpp>
 #include <KqueueUtils.hpp>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -66,9 +66,15 @@ void	HttpServer::initServer( Config &config )
 	/* Bind socket to port */
 	this->bindSocket( config );
 
+
+
+	// TODO: this also needs to be within the kqueue
 	/* Start listening. MAX_CONNECTIONS is defined in HttpServer.hpp */
 	if ( listen( _serverSocket, MAX_CONNECTIONS ) < 0)
 		throw ( std::runtime_error( "Failed to start listening" )) ;
+
+
+
 
 	this->setKqueue();
 
@@ -115,7 +121,7 @@ void	HttpServer::initServer( Config &config )
 				/* Add the client socket to the kqueue */
 				addKqueueEventFilter(_kqueueFd, clientSocket, EVFILT_READ);
 
-				EventHandler*	newEvent = new EventHandler(clientSocket, _kqueueFd);
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _kqueueFd);
 				_eventList.push_back(newEvent);
 			}
 

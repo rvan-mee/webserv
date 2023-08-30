@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   EventHandler.cpp                                   :+:    :+:            */
+/*   ClientHandler.cpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/25 21:04:43 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/28 18:46:58 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <EventHandler.hpp>
+#include <ClientHandler.hpp>
 #include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
@@ -18,13 +18,15 @@
 #include <stdlib.h>
 #include <HttpRequest.hpp>
 
+#include <iostream>
+
 #define READ_SIZE 1024
 #define WRITE_SIZE 1024
 
 #define READ 0
 #define WRITE 1
 
-EventHandler::EventHandler( int socketFd, int kqueueFd ) : 
+ClientHandler::ClientHandler( int socketFd, int kqueueFd ) : 
 	_kqueueFd(kqueueFd),
 	_socketFd(socketFd),
 	_cgi(kqueueFd),
@@ -37,19 +39,17 @@ EventHandler::EventHandler( int socketFd, int kqueueFd ) :
 	_requestData.contentLengthSet = false;
 }
 
-EventHandler::~EventHandler()
+ClientHandler::~ClientHandler()
 {
 	// TODO: remove all kqueue events related to this?
 
 	// it seems events get automatically deleted on FD closure.
 }
 
-bool	EventHandler::isEvent( int fd )
+bool	ClientHandler::isEvent( int fd )
 {
 	return (fd == _socketFd || _cgi.isEvent(fd));
 }
-
-#include <iostream>
 
 static bool	checkIfHeadersAreRead( t_requestData& requestData )
 {
@@ -72,7 +72,7 @@ static void	setContentLength( t_requestData& requestData )
 	std::vector<char>&				buffer = requestData.buffer;
 	const char*						cLength = "Content-Length:";
 	std::vector<char>::iterator 	it;
-	
+
 	it = std::search(buffer.begin(), buffer.end(), cLength, cLength + 16);
 
 	if (it == buffer.end())
@@ -97,12 +97,12 @@ static bool	allRequestDataRead( t_requestData& requestData )
 		return (true);
 	}
 
-	if (requestData.totalBytesRead - requestData.headerSize == requestData.contentLength)
+	if (requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength)
 		return (true);
 	return (false);
 }
 
-static void	readIntoBuffer( int socketFd, t_requestData& requestData )
+static void	readFromSocket( int socketFd, t_requestData& requestData )
 {
 	std::vector<char>&	buffer = requestData.buffer;
 	std::vector<char>	newRead(READ_SIZE);
@@ -116,14 +116,16 @@ static void	readIntoBuffer( int socketFd, t_requestData& requestData )
 	requestData.totalBytesRead += bytesRead;
 }
 
-void	EventHandler::handleRead( int fd )
+void	ClientHandler::handleRead( int fd )
 {
-	if (fd != _socketFd) {
+	if (_cgi.isEvent(fd)) {
 		_cgi.handleRead();
 		return ;
 	}
+	// else if () fd is from a fileHandler inside the parseRequest
 
-	readIntoBuffer(_socketFd, _requestData );
+
+	readFromSocket(_socketFd, _requestData);
 	// if all of the data we expect has not been read yet we add another event filter
 	// and wait more more data to be available for reading
 	if (!allRequestDataRead(_requestData)) {
@@ -141,7 +143,7 @@ void	EventHandler::handleRead( int fd )
 	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 }
 
-void	EventHandler::handleWrite( int fd )
+void	ClientHandler::handleWrite( int fd )
 {
 	if (fd != _socketFd) {
 		_cgi.handleWrite();
@@ -153,8 +155,7 @@ void	EventHandler::handleWrite( int fd )
 		bytesToWrite = _response.size();
 
 	// Send the response to the client
-	ssize_t bytesSent = send(_socketFd, _response.c_str(),
-	bytesToWrite, 0);
+	ssize_t bytesSent = send(_socketFd, _response.c_str(), bytesToWrite, 0);
 	if (bytesSent < 0)
 		throw ( std::runtime_error("Failed to send response to client") );
 

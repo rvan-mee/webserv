@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 16:21:30 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/29 13:47:39 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
 
 # include <Config.hpp>
-# include <EventHandler.hpp>
+# include <ClientHandler.hpp>
 # include <netinet/in.h> // sockaddr_in
 # include <sys/event.h>  // kqueue
 
@@ -27,7 +27,7 @@ class HttpServer
 	sockaddr_in					_address;
 	int							_kqueueFd;
 	struct kevent				_event[MAX_CONNECTIONS + 1];
-	std::vector<EventHandler *> _eventList;
+	std::vector<ClientHandler *> _eventList;
 
 	int getEventIndex(int fd);
 

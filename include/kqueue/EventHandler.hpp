@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   EventHandler.hpp                                   :+:    :+:            */
+/*   ClientHandler.hpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef EVENTHANDLER_HPP
-# define EVENTHANDLER_HPP
+#ifndef CLIENTHANDLER_HPP
+# define CLIENTHANDLER_HPP
 
 #include <CgiHandler.hpp>
 #include <string>
@@ -25,10 +25,10 @@ typedef struct	s_requestData {
 	int					totalBytesRead;
 }	t_requestData;
 
-class EventHandler
+class ClientHandler
 {
 	private:
-		EventHandler( void );
+		ClientHandler( void );
 
 		int					_kqueueFd;
 		int					_socketFd;
@@ -38,8 +38,8 @@ class EventHandler
 		int					_bytesWritten;
 
 	public:
-		EventHandler( int socketFd, int kqueueFd );
-		~EventHandler();
+		ClientHandler( int socketFd, int kqueueFd );
+		~ClientHandler();
 
 		bool	isEvent( int fd );
 		void	handleRead( int fd );
