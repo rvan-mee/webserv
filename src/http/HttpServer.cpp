@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/29 14:13:25 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/30 17:43:12 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,22 @@ HttpServer::~HttpServer()
 * Init server
 *****************************/
 
+void	HttpServer::closeServerSockets( void )
+{
+	for (size_t i = 0; i < _serverSockets.size(); i++) {
+		close(_serverSockets[i]);
+	}
+}
+
+bool	HttpServer::isServerSocket( int fd )
+{
+	for (size_t i = 0; i < _serverSockets.size(); i++) {
+		if (_serverSockets[i] == fd)
+			return ( true );
+	}
+	return ( false );
+}
+
 /**
  * @brief Setup the HTTP server
  * @param config The config object containing all the server information
@@ -60,22 +76,19 @@ HttpServer::~HttpServer()
 */
 void	HttpServer::initServer( Config &config )
 {
+	/* Set all the ports we need to listen to */
+	this->setPorts( config );
+
 	/* Create socket */
-	this->createSocket();
+	this->createSockets();
 
 	/* Bind socket to port */
-	this->bindSocket( config );
+	this->bindSockets();
 
+	/* Start listening to the sockets for connections */
+	this->listenToSockets();
 
-
-	// TODO: this also needs to be within the kqueue
-	/* Start listening. MAX_CONNECTIONS is defined in HttpServer.hpp */
-	if ( listen( _serverSocket, MAX_CONNECTIONS ) < 0)
-		throw ( std::runtime_error( "Failed to start listening" )) ;
-
-
-
-
+	/* Initialize the Kqueue */
 	this->setKqueue();
 
 	/* The following loop will continue to execute as long as the condition in the while-loop 
@@ -91,8 +104,10 @@ void	HttpServer::initServer( Config &config )
 		least one event occurs. If an event occurs, the details of the event are stored 
 		in the array this->event, and the number of events is stored in the variable numEvents.*/
 		numEvents = kevent( _kqueueFd, NULL, 0, _event, MAX_CONNECTIONS, NULL );
-		if ( numEvents < 0 )
+		if ( numEvents < 0 ) {
+			closeServerSockets();
 			throw ( std::runtime_error( "Server Terminated or Failed to wait for events" ) );
+		}
 
 		/* A loop is executed over the received events in _event to process each one. 
 		There are three possible events that can occur: 
@@ -111,17 +126,18 @@ void	HttpServer::initServer( Config &config )
 			an incoming connection from a new client. In that case, the connection 
 			is accepted, and the clientSocket is added to the _kqueueFd 
 			channel to monitor it for read events (reading data from the client). */
-			if ( eventFd == _serverSocket )
+			if ( this->isServerSocket(eventFd) )
 			{
-				std::cout << "Adding client socket" << std::endl;
-				int	clientSocket = accept( _serverSocket, NULL, NULL );
-				if ( clientSocket < 0 )
+				int	clientSocket = accept( eventFd, NULL, NULL );
+				if ( clientSocket < 0 ) {
+					closeServerSockets();
 					throw ( std::runtime_error( "Failed to accept connection" ) );
+				}
 
 				/* Add the client socket to the kqueue */
 				addKqueueEventFilter(_kqueueFd, clientSocket, EVFILT_READ);
 
-				ClientHandler*	newEvent = new ClientHandler(clientSocket, _kqueueFd);
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _kqueueFd, config);
 				_eventList.push_back(newEvent);
 			}
 
@@ -131,33 +147,38 @@ void	HttpServer::initServer( Config &config )
 			if (eventIndex == -1)
 				continue ;
 
-			/* If the client had disconnected, close the connection */
-			if ( _event[i].flags & EV_EOF ) {
-				std::cout << RED "Closing client connection" RESET << std::endl;
-				delete _eventList[eventIndex];
-				_eventList.erase(_eventList.begin() + eventIndex);
-				close(eventFd);
-			}
-			else if ( _event[i].filter == EVFILT_READ ) {
-				std::cout << GREEN "Handling read event" RESET << std::endl;
-				try {
+			try {
+				/* If the client had disconnected, close the connection */
+				if ( _event[i].flags & EV_EOF ) {
+					std::cout << RED "Closing client connection" RESET << std::endl;
+					delete _eventList[eventIndex];
+					_eventList.erase(_eventList.begin() + eventIndex);
+					close(eventFd);
+				}
+				else if ( _event[i].filter == EVFILT_READ ) {
+					std::cout << GREEN "Handling read event" RESET << std::endl;
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
-				catch(const std::exception& e) {
-					std::cerr << e.what() << std::endl;
-				}
-			}
-			else if ( _event[i].filter == EVFILT_WRITE) {
-				std::cout << BLUE "Handling write event" RESET << std::endl;
-				try {
+				else if ( _event[i].filter == EVFILT_WRITE) {
+					std::cout << BLUE "Handling write event" RESET << std::endl;
 					_eventList[eventIndex]->handleWrite(eventFd);
 				}
-				catch(const std::exception& e) {
-					std::cerr << e.what() << std::endl;
-				}
+			} catch(const std::exception& e) {
+				std::cerr << e.what() << '\n';
 			}
 		}
 	}
+}
+
+void	HttpServer::setPorts( Config &config )
+{
+	std::vector<int>&	allPorts = config.getListen();
+
+	for (size_t i = 0; i < allPorts.size(); i++) {
+		// if the port has not been set in _ports add it to the vector
+		if (std::find(_ports.begin(), _ports.end(), allPorts[i]) == _ports.end())
+			_ports.push_back(allPorts[i]);
+	}	
 }
 
 int	HttpServer::getEventIndex( int fd )
@@ -173,26 +194,39 @@ int	HttpServer::getEventIndex( int fd )
  * @brief Create a socket for the HTTP server to listen on.
  * @throw std::runtime_error if something goes wrong during the creation
 */
-void	HttpServer::createSocket( void )
+void	HttpServer::createSockets( void )
 {
 	int	reuse = 1;
 
-	/* Create socket. The socket function returns an integer that is 
-	used as a file descriptor. AF_INET = IPv4, SOCK_STREAM = TCP, 
-	0 = default protocol */
-	_serverSocket = socket( AF_INET, SOCK_STREAM, 0 );
-	
-	/* Check if socket creation was successful. If not, throw error */
-	if ( _serverSocket < 0 )
-		throw ( std::runtime_error( "Failed to create socket" ) );
-	
-	/* Allow reuse of a socket if it has recently been in use */
-	if (setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0)
-    	throw std::runtime_error( "Failed to set socket options" );
+	for (size_t i = 0; i < _ports.size(); i++)
+	{
+		/* Create socket. The socket function returns an integer that is 
+		used as a file descriptor. AF_INET = IPv4, SOCK_STREAM = TCP, 
+		0 = default protocol */
+		int	newSocket = socket( AF_INET, SOCK_STREAM, 0 );
 
-	/* Sets the socket to non-blocking */
-	if (fcntl(_serverSocket, F_SETFL, O_NONBLOCK) < 0)
-    	throw std::runtime_error( "Failed to set socket to non-blocking" );
+		/* Check if socket creation was successful. If not, throw error */
+		if ( newSocket < 0 ) {
+			closeServerSockets();
+			throw ( std::runtime_error( "Failed to create socket" ) );
+		}
+
+		/* Allow reuse of a socket if it has recently been in use */
+		if (setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int)) < 0) {
+			close(newSocket);
+			closeServerSockets();
+    		throw std::runtime_error( "Failed to set socket options" );
+		}
+
+		/* Sets the socket to non-blocking */
+		if (fcntl(newSocket, F_SETFL, O_NONBLOCK) < 0) {
+			close(newSocket);
+			closeServerSockets();
+    		throw std::runtime_error( "Failed to set socket to non-blocking" );
+		}
+
+		_serverSockets.push_back(newSocket);
+	}
 }
 
 /**
@@ -200,15 +234,32 @@ void	HttpServer::createSocket( void )
  * @param config The config object containing all the server information
  * @throw std::runtime_error if something goes wrong during the binding
 */
-void	HttpServer::bindSocket( Config &config )
+void	HttpServer::bindSockets( void )
 {
-	_address.sin_family = AF_INET; // IPv4
-	_address.sin_addr.s_addr = INADDR_ANY; // Listen on all interfaces
-	_address.sin_port = htons( config.getListen()[0] ); // Port to listen on
+	sockaddr_in					address;
 
-	/* Bind socket to port. If it fails, throw an error */
-	if ( bind( _serverSocket, ( struct sockaddr * )&_address, sizeof( _address ) ) < 0 )
-		throw ( std::runtime_error( "Failed to bind socket to port" ) );
+	for (size_t i = 0; i < _ports.size(); i++) {
+		address.sin_family = AF_INET; // IPv4
+		address.sin_addr.s_addr = INADDR_ANY; // Listen on all interfaces
+		address.sin_port = htons( _ports[i] ); // Port to listen on
+
+		/* Bind socket to port. If it fails, throw an error */
+		if ( bind( _serverSockets[i], ( struct sockaddr * )&address, sizeof( address ) ) < 0 ) {
+			closeServerSockets();
+			throw ( std::runtime_error( "Failed to bind socket to port" ) );
+		}
+	}
+}
+
+void	HttpServer::listenToSockets( void )
+{
+	/* Start listening. MAX_CONNECTIONS is defined in HttpServer.hpp */
+	for (size_t i = 0; i < _serverSockets.size(); i++) {
+		if ( listen( _serverSockets[i], MAX_CONNECTIONS ) < 0) {
+			closeServerSockets();
+			throw ( std::runtime_error( "Failed to start listening" ));
+		}
+	}
 }
 
 /**
@@ -222,8 +273,10 @@ void	HttpServer::setKqueue( void )
 	they are ready for reading or writing.
 	 */
 	_kqueueFd = kqueue();
-	if ( _kqueueFd < 0 )
+	if ( _kqueueFd < 0 ) {
+		closeServerSockets();
 		throw ( std::runtime_error( "Failed to create kqueue" ) );
+	}
 
 	/* Set event. The parameters of EV_SET are as follows:
 	1. The first parameter is the event to be modified. 
@@ -240,9 +293,15 @@ void	HttpServer::setKqueue( void )
 	in the event of an event. Here it is NULL because we don't need to pass
 	any data to the callback function.
 	*/
-	EV_SET( _event, _serverSocket, EVFILT_READ, EV_ADD, 0, 0, NULL );
+	for (size_t i = 0; i < _serverSockets.size(); i++)
+	{
+		EV_SET( _event, _serverSockets[i], EVFILT_READ, EV_ADD, 0, 0, NULL );
 
-	// Kevent is used to register events with the kqueue and to monitor them for changes.
-	if ( kevent( _kqueueFd, _event, 1, NULL, 0, NULL ) < 0 )
-		throw ( std::runtime_error( "Failed to set event" ) );
+		// Kevent is used to register events with the kqueue and to monitor them for changes.
+		if ( kevent( _kqueueFd, _event, 1, NULL, 0, NULL ) < 0 ) {
+			close(_kqueueFd);
+			closeServerSockets();
+			throw ( std::runtime_error( "Failed to set event" ) );
+		}
+	}
 }

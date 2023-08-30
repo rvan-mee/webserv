@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/23 11:25:45 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/25 14:16:59 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/30 17:15:10 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,8 +95,8 @@ class Config
 		 *****************************/
 
 		Server				&getServer( std::string serverName );
-		std::string			getRoot( void ) const;
-		std::vector<int>	getListen( void ) const;
+		std::string			&getRoot( void );
+		std::vector<int>	&getListen( void );
 
 };
 

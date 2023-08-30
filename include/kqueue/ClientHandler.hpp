@@ -14,6 +14,7 @@
 # define CLIENTHANDLER_HPP
 
 #include <CgiHandler.hpp>
+#include <Config.hpp>
 #include <string>
 
 typedef struct	s_requestData {
@@ -36,9 +37,10 @@ class ClientHandler
 		t_requestData		_requestData;
 		std::string			_response;
 		int					_bytesWritten;
+		Config&				_config;
 
 	public:
-		ClientHandler( int socketFd, int kqueueFd );
+		ClientHandler( int socketFd, int kqueueFd, Config& config );
 		~ClientHandler();
 
 		bool	isEvent( int fd );

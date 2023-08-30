@@ -26,11 +26,12 @@
 #define READ 0
 #define WRITE 1
 
-ClientHandler::ClientHandler( int socketFd, int kqueueFd ) : 
+ClientHandler::ClientHandler( int socketFd, int kqueueFd, Config& config ) : 
 	_kqueueFd(kqueueFd),
 	_socketFd(socketFd),
 	_cgi(kqueueFd),
-	_bytesWritten(0)
+	_bytesWritten(0),
+	_config(config)
 {
 	_requestData.totalBytesRead = 0;
 	_requestData.headerSize = 0;

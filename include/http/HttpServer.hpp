@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/29 13:47:39 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/30 17:16:13 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,8 @@
 class HttpServer
 {
   private:
-	int							_serverSocket;
-	sockaddr_in					_address;
+	std::vector<int>			_serverSockets;
+	std::vector<int>			_ports;
 	int							_kqueueFd;
 	struct kevent				_event[MAX_CONNECTIONS + 1];
 	std::vector<ClientHandler *> _eventList;
@@ -43,11 +43,15 @@ class HttpServer
 	* Server init
 	*****************************/
 
-	void initServer(Config &config);
-	void createSocket(void);
-	void bindSocket(Config &config);
-	void setKqueue(void);
-	void parseRequest(std::vector<char> buffer);
+	bool	isServerSocket( int fd );
+	void	initServer(Config &config);
+	void	createSockets(void);
+	void	bindSockets(void);
+	void	listenToSockets(void);
+	void	setKqueue(void);
+	void	parseRequest(std::vector<char> buffer);
+	void	closeServerSockets( void );
+	void	setPorts( Config &config );
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/27 14:06:27 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/30 12:41:28 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/30 16:58:28 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -152,5 +152,3 @@ t_fileState	FileHandler::handleWrite( void )
 	close(_fd);
 	return ( DONE );
 }
-
-
