@@ -6,13 +6,16 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/29 16:33:52 by cpost         ########   odam.nl         */
+/*   Updated: 2023/08/30 16:56:31 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <CgiHandler.hpp>
 #include <unistd.h>
 #include <signal.h>
+#include <KqueueUtils.hpp>
+#include <iostream>
+#include <vector>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
@@ -59,6 +62,7 @@ void	CgiHandler::handleRead( void )
 	currentBytesRead = read(_pipeRead, &(_cgiOutput[_bytesRead]), READ_SIZE);
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
+
 	_bytesRead += currentBytesRead;
 	
 	// if
@@ -71,19 +75,23 @@ void	CgiHandler::handleRead( void )
 
 void	CgiHandler::handleWrite( void )
 {
-	const int	bytesLeft = _cgiInput.size() - _bytesWrote;
-	int			bytesToWrite = WRITE_SIZE;
-	int			currentWriteAmount;
+	size_t	bytesToWrite = WRITE_SIZE;
 
-	if (bytesLeft < WRITE_SIZE)
-		bytesToWrite = bytesLeft;
+	if (bytesToWrite > _cgiInput.size())
+		bytesToWrite = _cgiInput.size();
 
-	currentWriteAmount = write(_pipeWrite, &(_cgiInput[_bytesWrote]), bytesToWrite);
-	if (currentWriteAmount < 0)
-		throw ( std::runtime_error("Failed to write to the CGI") );
-	_bytesWrote += currentWriteAmount;
+	ssize_t bytesSent = write(_pipeWrite, _cgiInput.data(), bytesToWrite);
+	if (bytesSent < 0)
+		throw ( std::runtime_error("Failed to send response to client") );
 
-	// TODO: create new write event in the kqueue
+	_cgiInput.erase(0, bytesSent);
+
+	if (_cgiInput.size() == 0) {
+		// wrote everything to pipe
+		addKqueueEventFilter( _kqueueFd, _pipeRead, EVFILT_READ );
+		return ;
+	}
+	addKqueueEventFilter( _kqueueFd, _pipeWrite, EVFILT_WRITE );
 }
 
 /**
@@ -117,7 +125,7 @@ void	CgiHandler::startPythonCgi( void )
 	this->_forkPid = fork();
 	if ( this->_forkPid == -1 )
 		throw ( std::runtime_error( "Failed to fork process" ) );
-	else if ( pid == 0 ) // Child process
+	else if ( this->_forkPid == 0 ) // Child process
 	{
 		// Setup pipes in child process
 		this->childInitPipes( pipeToCgi, pipeFromCgi );
@@ -126,13 +134,15 @@ void	CgiHandler::startPythonCgi( void )
     	char *env[] = { NULL };
 		execve( PYTHON_PATH, args, env );
 		std::cerr << "Error executing Python script" << std::endl;
-		return ( 1 );
+		return ;
 	}
 	else // Parent process
 	{
 		// Setup pipes in parent process
 		this->parentInitPipes( pipeToCgi, pipeFromCgi );
-		
+
+		addKqueueEventFilter( _kqueueFd, _pipeWrite, EVFILT_WRITE );
+		this->handleWrite();
 	}
 }
 
