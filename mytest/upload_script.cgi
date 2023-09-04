@@ -1,9 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import cgi
 import os
 
 # Set the path where uploaded files will be stored
 upload_dir = "/uploads"
+#!/usr/bin/python3
 
 # Create an instance of FieldStorage to handle the form data
 form = cgi.FieldStorage()

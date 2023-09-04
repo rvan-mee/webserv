@@ -147,29 +147,31 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
             addLineToBody(line);
     }
     // printAll();
-
-    std::cout << "request method: " << _request_method << std::endl;
-    if (_request_method == 1)
-    {
-            std::string filePath = "uploads/test.txt";
-	// std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
-	std::ofstream uploadFile(filePath);
-        std::string content = extractContent(_message_body, "------");
-        std::cout << "content " << content << " end content" << std::endl;
-        if (!content.empty()) {
-            std::cout << content << std::endl;
-        } else {
-            std::cout << "Content not found." << std::endl;
-        }
-        if (uploadFile.is_open()) {
-            // uploadFile.write(content.c_str(), content.size());
-            uploadFile << content;
-            uploadFile.close();
-            std::cout << "File saved: " << filePath << std::endl;
-        } else {
-            std::cerr << "Failed to save the file" << std::endl;
-        }
-    }
+    std::string cgiUrl = "/cgi-bin/";
+    if (_request_URI.find(cgiUrl) != std::string::npos)
+        parseCgiRequest();
+    // std::cout << "request method: " << _request_method << std::endl;
+    // if (_request_method == 1)
+    // {
+    //         std::string filePath = "uploads/test.txt";
+	// // std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
+	// std::ofstream uploadFile(filePath);
+    //     std::string content = extractContent(_message_body, "------");
+    //     std::cout << "content " << content << " end content" << std::endl;
+    //     if (!content.empty()) {
+    //         std::cout << content << std::endl;
+    //     } else {
+    //         std::cout << "Content not found." << std::endl;
+    //     }
+    //     if (uploadFile.is_open()) {
+    //         // uploadFile.write(content.c_str(), content.size());
+    //         uploadFile << content;
+    //         uploadFile.close();
+    //         std::cout << "File saved: " << filePath << std::endl;
+    //     } else {
+    //         std::cerr << "Failed to save the file" << std::endl;
+    //     }
+    // }
   
     return (response.buildResponse());
 }
