@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/04 12:33:40 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/04 16:29:12 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ class HttpRequest
 		void	setHost(std::string host);
 		void    addLineToBody(std::string line);
 		void    printAll();
-		void    parseCgiRequest();
+		void    parseCgiRequest(HttpResponse &response);
 	private:
 		requestType	_request_method;
 		std::string _request_URI;

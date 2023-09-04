@@ -149,7 +149,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
     // printAll();
     std::string cgiUrl = "/cgi-bin/";
     if (_request_URI.find(cgiUrl) != std::string::npos)
-        parseCgiRequest();
+        parseCgiRequest(response);
     // std::cout << "request method: " << _request_method << std::endl;
     // if (_request_method == 1)
     // {
