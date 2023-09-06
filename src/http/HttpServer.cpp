@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/30 17:43:12 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/08/31 14:24:23 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,7 @@ void	HttpServer::initServer( Config &config )
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
 	int	numEvents;
+	int	count = 0;
 	while ( true )
 	{
 		/* The kevent function is used to wait and check for events on the this->kqueueFd 
@@ -117,6 +118,7 @@ void	HttpServer::initServer( Config &config )
 		4. The server has to write to an fd. */
 		for (int i = 0; i < numEvents; i++)
 		{
+			std::cout << "Handling event: " << count++ << std::endl;
 			int	eventFd = _event[i].ident;
 			// std::cout << "\n\nNew event on fd: " << eventFd << "\nfilter: "\
 						// << (_event[i].filter == EVFILT_READ ? "READ" : "WRITE") << "\nflags: "\

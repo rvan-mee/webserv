@@ -20,11 +20,16 @@
 
 #include <iostream>
 
-#define READ_SIZE 1024
-#define WRITE_SIZE 1024
+#define READ_SIZE 10240
+#define WRITE_SIZE 65536
 
 #define READ 0
 #define WRITE 1
+
+#define RESET   "\033[0m"
+#define RED     "\033[31m"      /* Red */
+#define GREEN   "\033[32m"      /* Green */
+#define BLUE    "\033[34m"      /* Blue */
 
 ClientHandler::ClientHandler( int socketFd, int kqueueFd, Config& config ) : 
 	_kqueueFd(kqueueFd),
@@ -36,6 +41,7 @@ ClientHandler::ClientHandler( int socketFd, int kqueueFd, Config& config ) :
 	_requestData.totalBytesRead = 0;
 	_requestData.headerSize = 0;
 	_requestData.contentLength = 0;
+	_requestData.chunkSize = 0;
 	_requestData.readHeaders = false;
 	_requestData.contentLengthSet = false;
 }
@@ -54,15 +60,14 @@ bool	ClientHandler::isEvent( int fd )
 
 static bool	checkIfHeadersAreRead( t_requestData& requestData )
 {
-	std::vector<char>::iterator	it;
 	const std::vector<char>		endOfHeaders = {'\r','\n','\r','\n'};
 	std::vector<char>&			buffer = requestData.buffer;
 
 	// if the iterator is not set to the end of buffer then we have found our substring
-	it = std::search(buffer.begin(), buffer.end(), endOfHeaders.begin(), endOfHeaders.end());
+	auto it = std::search(buffer.begin(), buffer.end(), endOfHeaders.begin(), endOfHeaders.end());
 	if (it != buffer.end()) {
 		requestData.readHeaders = true;
-		requestData.headerSize = it - buffer.begin() + 4;
+		requestData.headerSize = it - buffer.begin() + endOfHeaders.size();
 		return (true);
 	}
 	return (false);
@@ -70,20 +75,124 @@ static bool	checkIfHeadersAreRead( t_requestData& requestData )
 
 static void	setContentLength( t_requestData& requestData )
 {
-	std::vector<char>&				buffer = requestData.buffer;
-	const char*						cLength = "Content-Length:";
-	std::vector<char>::iterator 	it;
+	std::vector<char>&	buffer = requestData.buffer;
+	const std::string	cLength = "Content-Length:";
 
-	it = std::search(buffer.begin(), buffer.end(), cLength, cLength + 16);
+	auto it = std::search(buffer.begin(), buffer.end(), cLength.begin(), cLength.end());
 
 	if (it == buffer.end())
 		return ;
 	if (it + 16 > buffer.end())
 		return ;
 
-	int	contentLengthIndex = it - buffer.begin() + 16;
+	int	contentLengthIndex = it - buffer.begin() + cLength.length();
 	requestData.contentLength = atoi(&buffer[contentLengthIndex]);
 	requestData.contentLengthSet = true;
+}
+
+static void	moveHeadersIntoBuffer( t_requestData& requestData )
+{
+	std::vector<char>&		buffer = requestData.buffer;
+	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
+	const std::vector<char>	endOfHeaders = {'\r','\n','\r','\n'};
+
+	auto	headersIterator = std::search(buffer.begin(), buffer.end(), endOfHeaders.begin(), endOfHeaders.end());
+	int		headersEndIndex = headersIterator - buffer.begin() + endOfHeaders.size();
+
+	chunkedBuffer.insert(chunkedBuffer.end(), buffer.begin(), buffer.begin() + headersEndIndex);
+	std::cout << "before: " << buffer.data() << std::endl << std::endl << std::endl;
+	buffer.erase(buffer.begin(), buffer.begin() + headersEndIndex);
+	std::cout << "after: " << buffer.data() << std::endl << std::endl << std::endl;
+}
+
+static void	checkChunkedEncoding( t_requestData& requestData )
+{
+	std::vector<char>&	buffer = requestData.buffer;
+	std::string			transferEncoding = "Transfer-Encoding: ";
+
+	auto it = std::search(buffer.begin(), buffer.end(), transferEncoding.begin(), transferEncoding.end());
+
+	if (it == buffer.end())
+		return ;
+	if (it + transferEncoding.length() > buffer.end())
+		return ;
+
+	int	transferEncodingIndex = it - buffer.begin() + transferEncoding.length();
+
+	// Found a Transfer-Encoding header, checking if the encoding is chunked or not.
+	// If the encoding is not chunked we don't support it
+	if (std::strncmp(&buffer[transferEncodingIndex], "chunked\r\n", 9) != 0)
+		throw ( std::runtime_error("Unsupported encoding type") );
+
+	requestData.chunkedEncoded = true;
+	moveHeadersIntoBuffer(requestData);
+	// std::cout << "chunked buffer: " << requestData.chunkedBuffer.data() << std::endl << std::endl << std::endl;
+	// std::cout << "regular buffer: " << requestData.buffer.data() << std::endl << std::endl << std::endl;
+}
+
+static bool	setNewChunkSize( t_requestData& requestData )
+{
+	std::vector<char>&		buffer = requestData.buffer;
+	size_t					lineBreakLength = 2;
+	size_t					indexAfterStoi = 0;
+
+	try {
+		// std::cout << "Buffer contains:\n\n" << requestData.buffer.data() << std::endl<< std::endl<< std::endl;
+		requestData.chunkSize = std::stoi(buffer.data(), &indexAfterStoi, 16);
+		std::cout << "Chunk size: " << requestData.chunkSize << std::endl;
+		requestData.buffer.erase(buffer.begin(), buffer.begin() + indexAfterStoi + lineBreakLength * 2);
+		if (requestData.chunkSize == 0)
+			return ( true );
+	}
+	catch(const std::exception& e) {
+		throw ( std::runtime_error("Invalid block size\nBad Request") );
+	}
+	return ( false );
+}
+
+static void	moveChunk( t_requestData& requestData )
+{
+	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
+	std::vector<char>&		buffer = requestData.buffer;
+	size_t					lineBreakLength = 2;
+	size_t					amountToMove;
+
+	amountToMove = requestData.chunkSize;
+	std::cout << "Amount left from this chunk: " << amountToMove << std::endl;
+	if (amountToMove > buffer.size())
+		amountToMove = buffer.size();
+	std::cout << "After if check: " << amountToMove << std::endl << std::endl << std::endl << std::endl;
+
+	chunkedBuffer.insert(chunkedBuffer.end(), buffer.begin(), buffer.begin() + amountToMove);
+	requestData.chunkSize -= amountToMove;
+
+	if (requestData.chunkSize == 0)
+		buffer.erase(buffer.begin(), buffer.begin() + amountToMove + lineBreakLength);
+	else
+		buffer.erase(buffer.begin(), buffer.begin() + amountToMove);
+}
+
+static bool	parseChunkEncoding( t_requestData& requestData )
+{
+	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
+	std::vector<char>&		buffer = requestData.buffer;
+	bool					allChunksRead = false;
+
+	while (buffer.size() > 0 && allChunksRead == false) {
+		if (requestData.chunkSize != 0) // we still have to move stuff out from the old buffer
+			moveChunk(requestData);
+		else // We need to parse a new chunk size
+			allChunksRead = setNewChunkSize(requestData);
+	}
+
+
+	if ( allChunksRead ) {
+		// Move everything from the chunked buffer into the regular buffer so we can use it in the response parser
+		buffer.insert(buffer.end(), chunkedBuffer.begin(), chunkedBuffer.end());
+		chunkedBuffer.clear();
+		return ( true );
+	}
+	return ( false );
 }
 
 static bool	allRequestDataRead( t_requestData& requestData )
@@ -91,30 +200,44 @@ static bool	allRequestDataRead( t_requestData& requestData )
 	if (requestData.readHeaders == false) {
 		if (!checkIfHeadersAreRead(requestData))
 			return (false);
+		checkChunkedEncoding(requestData);
 		setContentLength(requestData);
 	}
 
-	if (requestData.contentLengthSet == false) {
+	if (requestData.contentLengthSet == false && requestData.chunkedEncoded == false)
 		return (true);
-	}
 
-	if (requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength)
-		return (true);
-	return (false);
+	if (requestData.chunkedEncoded)
+		return ( parseChunkEncoding(requestData) );
+	
+	// if the request is not chunk encoded we check if we have read everything according to the set content-length
+	return (requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength);
 }
 
 static void	readFromSocket( int socketFd, t_requestData& requestData )
 {
 	std::vector<char>&	buffer = requestData.buffer;
 	std::vector<char>	newRead(READ_SIZE);
-	int					bytesRead;
+	ssize_t				bytesRead;
 
 	bytesRead = recv( socketFd, newRead.data(), READ_SIZE, 0 );
 	if (bytesRead < 0)
 		throw ( std::runtime_error("Failed to read from socket") );
 
-	buffer.insert(buffer.end(), newRead.begin(), newRead.end());
+	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
 	requestData.totalBytesRead += bytesRead;
+}
+
+void	ClientHandler::resetState( void )
+{
+	_requestData.buffer.clear();
+	_requestData.chunkedBuffer.clear();
+	_requestData.contentLength = 0;
+	_requestData.contentLengthSet = false;
+	_requestData.headerSize = 0;
+	_requestData.readHeaders = false;
+	_requestData.totalBytesRead = 0;
+	_requestData.chunkSize = 0;
 }
 
 void	ClientHandler::handleRead( int fd )
@@ -123,8 +246,6 @@ void	ClientHandler::handleRead( int fd )
 		_cgi.handleRead();
 		return ;
 	}
-	// else if () fd is from a fileHandler inside the parseRequest
-
 
 	readFromSocket(_socketFd, _requestData);
 	// if all of the data we expect has not been read yet we add another event filter
@@ -134,7 +255,7 @@ void	ClientHandler::handleRead( int fd )
 		return ;
 	}
 
-	std::cout << "Received all data" << std::endl;
+	std::cout << GREEN "Received all data" RESET << std::endl;
 	// all data has been read, now we can parse and prepare a response
 	HttpRequest server;
 
@@ -142,6 +263,7 @@ void	ClientHandler::handleRead( int fd )
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer);
 	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
+	this->resetState();
 }
 
 void	ClientHandler::handleWrite( int fd )
@@ -168,5 +290,5 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
-	std::cout << "Sent all data" << std::endl;
+	std::cout << RED "Sent all data" RESET << std::endl;
 }

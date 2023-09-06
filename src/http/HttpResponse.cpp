@@ -39,9 +39,7 @@ std::string HttpResponse::buildResponse()
 	str += " ";
 	str += _reason_phrase;
 	str += "\r\n";
-	str += "Content-Type: ";
-	str += _content_type;
-	str += "\r\n\r\n";
+	str += "Content-Type: " + _content_type + "\r\n";
 	std::ifstream f("src/http/index.html"); //taking file as inputstream
 	std::string s;
 	if (f.is_open())
@@ -54,9 +52,12 @@ std::string HttpResponse::buildResponse()
 	{
 		std::cout << "Error opening file";
 	}
+	str += "Content-Length: ";
+	str += std::to_string(s.size());
+	str += "\r\n\r\n";
 	str += s;
 	// str+= _message_body;
-	str += "\r\n";
+	// str += "\r\n";
 	// str+= "HTTP/1.1 500 nope\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello,
 	return (str);
 }

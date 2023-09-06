@@ -19,8 +19,11 @@
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
+	std::vector<char>	chunkedBuffer;
+	int					chunkSize;
 	bool				readHeaders;
 	bool				contentLengthSet;
+	bool				chunkedEncoded;
 	int					headerSize;
 	int					contentLength;
 	int					totalBytesRead;
@@ -46,6 +49,7 @@ class ClientHandler
 		bool	isEvent( int fd );
 		void	handleRead( int fd );
 		void	handleWrite( int fd );
+		void	resetState( void );
 };
 
 #endif
