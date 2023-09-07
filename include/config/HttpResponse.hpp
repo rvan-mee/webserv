@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 13:45:58 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/07 16:55:09 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@
 class HttpResponse
 {
   public:
+	HttpResponse();
 	void setContentType(std::string contentType);
 	void addLineToBody(std::string line);
 	void printAll();

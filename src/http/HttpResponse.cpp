@@ -1,5 +1,13 @@
 #include "HttpResponse.hpp"
 
+HttpResponse::HttpResponse()
+{
+	_status_code = 0;
+	_reason_phrase = "";
+	_content_type = "";
+	_message_body = "";
+}
+
 void HttpResponse::setContentType(std::string contentType)
 {
 	if (contentType.empty())
@@ -27,13 +35,57 @@ void HttpResponse::setError(int statusCode, std::string reasonPhrase)
 	_reason_phrase = reasonPhrase;
 }
 
+bool replace(std::string& str, const std::string& from, const std::string& to) {
+    size_t start_pos = str.find(from);
+    if(start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
+
 std::string HttpResponse::buildResponse()
 {
 	std::string str;
-	_status_code = 200;
-	_reason_phrase = "OK";
-	_content_type = "text/html";
-	_message_body = "<html>\n<body>\n<h1>test</h1>\n</body>\n</html>\n";
+	if (!_status_code)
+		_status_code = 200;
+	if (_reason_phrase.empty())
+		_reason_phrase = "OK";
+	if (_content_type.empty())
+		_content_type = "text/html";
+	if (_status_code == 200)
+	{
+		std::ifstream f("src/http/index.html"); //taking file as inputstream
+		std::string s;
+		if (f.is_open())
+		{
+			std::ostringstream ss;
+			ss << f.rdbuf(); // reading data
+			s = ss.str();
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+		_message_body = s;
+	}
+	if (_status_code != 200)
+		{
+			std::ifstream error("default_error.html"); //taking file as inputstream
+		std::string e;
+		if (error.is_open())
+		{
+			std::ostringstream ss;
+			ss << error.rdbuf(); // reading data
+			e = ss.str();
+			replace(e, "[ERRORCODE]", std::to_string(_status_code));
+			replace(e, "[REASONPHRASE]", _reason_phrase);
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+		_message_body = e;
+	}
 	str += "HTTP/1.1 ";
 	str += std::to_string(_status_code);
 	str += " ";
@@ -42,20 +94,9 @@ std::string HttpResponse::buildResponse()
 	str += "Content-Type: ";
 	str += _content_type;
 	str += "\r\n\r\n";
-	std::ifstream f("src/http/index.html"); //taking file as inputstream
-	std::string s;
-	if (f.is_open())
-	{
-		std::ostringstream ss;
-		ss << f.rdbuf(); // reading data
-		s = ss.str();
-	}
-	else
-	{
-		std::cout << "Error opening file";
-	}
-	str += s;
-	// str+= _message_body;
+	
+	// str += s;
+	str+= _message_body;
 	str += "\r\n";
 	// str+= "HTTP/1.1 500 nope\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello,
 	return (str);
