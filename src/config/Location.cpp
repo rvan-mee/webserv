@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/24 12:42:47 by cpost         #+#    #+#                 */
-/*   Updated: 2023/07/25 14:14:35 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/07 13:23:25 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ Location::Location( void ) :
     allowGet( false ),
     allowPost( false ),
     allowDelete( false ),
+    autoindex( true ),
     fastcgiPass( std::string() ),
     fastcgiIndex( std::string() ),
     fastcgiParam( std::vector<std::string>() ),
@@ -88,6 +89,29 @@ void    Location::parseAllow( std::vector<std::string> &tokens )
             this->allowDelete = true;
         else
             throw ( std::runtime_error( "Error: Invalid argument for 'allow' instruction in location block." ) );
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
+void    Location::parseAutoindex ( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'autoindex' token.
+
+    int i = 0;
+    while ( tokens[0] != ";" )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid 'Autoindex' instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'Autoindex' instructions in location block." ) );
+
+        if ( tokens[0] == "on" )
+            this->autoindex = true;
+        else if ( tokens[0] == "off" )
+            this->autoindex = false;
+        else
+            throw ( std::runtime_error( "Error: Invalid argument for 'Autoindex' instruction in location block." ) );
         tokens.erase( tokens.begin() );
     }
     tokens.erase( tokens.begin() ); // Remove the ';' token.
@@ -187,7 +211,7 @@ std::vector<std::string> Location::getUrls( void ) const
 }
 
 /**
- * @brief Returns a boolean indicating whether the given server block
+ * @brief Returns a boolean indicating whether the given location block
  * has the GET method enabled.
  * @return true if GET is enabled, false otherwise.
  */
@@ -197,7 +221,17 @@ bool    Location::getAllowGet( void ) const
 }
 
 /**
- * @brief Returns a boolean indicating whether the given server block
+ * @brief Returns a boolean indicating whether the given location block
+ * has the autoindex enabled.
+ * @return true if autoindex is enabled, false otherwise.
+ */
+bool    Location::getAutoindex( void ) const
+{
+    return ( this->autoindex );
+}
+
+/**
+ * @brief Returns a boolean indicating whether the given location block
  * has the POST method enabled.
  * @return true if POST is enabled, false otherwise.
  */
@@ -207,7 +241,7 @@ bool    Location::getAllowPost( void ) const
 }
 
 /**
- * @brief Returns a boolean indicating whether the given server block
+ * @brief Returns a boolean indicating whether the given location block
  * has the DELETE method enabled.
  * @return true if DELETE is enabled, false otherwise.
  */
