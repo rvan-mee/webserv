@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/24 12:42:47 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 13:23:25 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/07 16:17:42 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,6 +94,10 @@ void    Location::parseAllow( std::vector<std::string> &tokens )
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
+/**
+ * @brief Parse an autoindex instruction in a location block.
+ * @param tokens Vector with tokens 
+ */
 void    Location::parseAutoindex ( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'autoindex' token.
@@ -112,6 +116,27 @@ void    Location::parseAutoindex ( std::vector<std::string> &tokens )
             this->autoindex = false;
         else
             throw ( std::runtime_error( "Error: Invalid argument for 'Autoindex' instruction in location block." ) );
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
+/**
+ * @brief Parse alias instruction in a location block.
+ * @param tokens Vector with tokens
+ * @throw std::runtime_error if the instruction invalid.
+ */
+void    Location::parseAlias( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'alias' token.
+
+    for ( int i = 0; tokens[0] != ";"; i++ )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid 'alias' instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'alias' instructions in location block." ) );
+        this->alias = tokens[0];
         tokens.erase( tokens.begin() );
     }
     tokens.erase( tokens.begin() ); // Remove the ';' token.
@@ -284,4 +309,13 @@ std::vector<std::string> Location::getFastcgiParam( void ) const
 std::vector<std::string> Location::getInclude( void ) const
 {
     return ( this->include );
+}
+
+/**
+ * @brief Returns the alias of the given location block.
+ * @return std::string 
+ */
+std::string Location::getAlias( void ) const
+{
+    return ( this->alias );
 }
