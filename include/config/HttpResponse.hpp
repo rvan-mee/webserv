@@ -30,7 +30,7 @@ class HttpResponse
 	void addLineToBody(std::string line);
 	void printAll();
 	void setError(int statusCode, std::string _reason_phrase);
-	std::string buildResponse();
+	std::string buildResponse( Config &config);
 
   private:
 	int _status_code;

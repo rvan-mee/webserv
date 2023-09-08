@@ -113,7 +113,7 @@ static void	readIntoBuffer( int socketFd, t_requestData& requestData )
 	requestData.totalBytesRead += bytesRead;
 }
 
-void	EventHandler::handleRead( int fd )
+void	EventHandler::handleRead( int fd, Config &config )
 {
 	if (fd != _socketFd) {
 		_cgi.handleRead();
@@ -135,7 +135,7 @@ void	EventHandler::handleRead( int fd )
 	
 	// std::vector<char> v;
 	// std::copy(s.begin(), s.end(), std::back_inserter(v));
-	std::string response = server.parseRequestandGiveReponse(_requestData.buffer);
+	std::string response = server.parseRequestandGiveReponse(_requestData.buffer, config);
 	
 	// Convert the response string to bytes
 	const char *responseBytes = response.c_str();

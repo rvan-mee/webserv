@@ -173,7 +173,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
     //     }
     // }
   
-    return (response.buildResponse());
+    return (response.buildResponse(config));
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
 //  message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire 

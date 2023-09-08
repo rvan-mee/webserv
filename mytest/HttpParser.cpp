@@ -102,7 +102,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
+std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer, Config &config)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);

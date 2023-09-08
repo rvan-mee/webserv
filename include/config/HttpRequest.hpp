@@ -28,7 +28,7 @@ class HttpRequest
 {
 	public:
 		enum requestType { GET, POST, DELETE };
-		std::string    parseRequestandGiveReponse( std::vector<char> buffer );
+		std::string    parseRequestandGiveReponse( std::vector<char> buffer, Config &config );
 		void	isRequestLine(std::string line, HttpResponse &response);
 		void	isHeader(std::string line, HttpResponse &response);
 		requestType	getMethod();

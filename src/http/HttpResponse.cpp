@@ -43,8 +43,19 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-std::string HttpResponse::buildResponse()
+void	 setMessageBody(Config &config)
 {
+	std::map<std::string, int>::iterator it;
+    for (it = config.servers[0].errorPage.begin(); it != config.servers[0].errorPage.end(); ++it) {
+        if (_status_code == it->first)
+		
+		std::cout << "Key: " << it->first << ", Value: " << it->second << std::endl;
+    }
+}
+
+std::string HttpResponse::buildResponse( Config &config)
+{
+	setMessageBody(config);
 	std::string str;
 	if (!_status_code)
 		_status_code = 200;

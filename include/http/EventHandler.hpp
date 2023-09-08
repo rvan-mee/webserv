@@ -41,7 +41,7 @@ class EventHandler
 		~EventHandler();
 
 		bool	isEvent( int fd );
-		void	handleRead( int fd );
+		void	handleRead( int fd, Config &config );
 		void	handleWrite( int fd );
 };
 
