@@ -21,6 +21,7 @@ typedef struct	s_requestData {
 	std::vector<char>	buffer;
 	std::vector<char>	chunkedBuffer;
 	int					chunkSize;
+	bool				movedHeaders;
 	bool				readHeaders;
 	bool				contentLengthSet;
 	bool				chunkedEncoded;

@@ -44,6 +44,7 @@ ClientHandler::ClientHandler( int socketFd, int kqueueFd, Config& config ) :
 	_requestData.chunkSize = 0;
 	_requestData.readHeaders = false;
 	_requestData.contentLengthSet = false;
+	_requestData.movedHeaders = false;
 }
 
 ClientHandler::~ClientHandler()
@@ -75,6 +76,7 @@ static bool	checkIfHeadersAreRead( t_requestData& requestData )
 
 static void	setContentLength( t_requestData& requestData )
 {
+	std::cout << "setting content length" << std::endl;
 	std::vector<char>&	buffer = requestData.buffer;
 	const std::string	cLength = "Content-Length:";
 
@@ -92,6 +94,7 @@ static void	setContentLength( t_requestData& requestData )
 
 static void	moveHeadersIntoBuffer( t_requestData& requestData )
 {
+	std::cout << "moving headers" << std::endl;
 	std::vector<char>&		buffer = requestData.buffer;
 	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
 	const std::vector<char>	endOfHeaders = {'\r','\n','\r','\n'};
@@ -99,14 +102,24 @@ static void	moveHeadersIntoBuffer( t_requestData& requestData )
 	auto	headersIterator = std::search(buffer.begin(), buffer.end(), endOfHeaders.begin(), endOfHeaders.end());
 	int		headersEndIndex = headersIterator - buffer.begin() + endOfHeaders.size();
 
-	chunkedBuffer.insert(chunkedBuffer.end(), buffer.begin(), buffer.begin() + headersEndIndex);
-	std::cout << "before: " << buffer.data() << std::endl << std::endl << std::endl;
+	// chunkedBuffer.insert(chunkedBuffer.end(), buffer.begin(), buffer.begin() + headersEndIndex);
+
+
+
+
+
+
+
+
+
+
+
 	buffer.erase(buffer.begin(), buffer.begin() + headersEndIndex);
-	std::cout << "after: " << buffer.data() << std::endl << std::endl << std::endl;
 }
 
 static void	checkChunkedEncoding( t_requestData& requestData )
 {
+	std::cout << "Checking chunked encoding" << std::endl;
 	std::vector<char>&	buffer = requestData.buffer;
 	std::string			transferEncoding = "Transfer-Encoding: ";
 
@@ -125,47 +138,58 @@ static void	checkChunkedEncoding( t_requestData& requestData )
 		throw ( std::runtime_error("Unsupported encoding type") );
 
 	requestData.chunkedEncoded = true;
-	moveHeadersIntoBuffer(requestData);
-	// std::cout << "chunked buffer: " << requestData.chunkedBuffer.data() << std::endl << std::endl << std::endl;
-	// std::cout << "regular buffer: " << requestData.buffer.data() << std::endl << std::endl << std::endl;
 }
 
 static bool	setNewChunkSize( t_requestData& requestData )
 {
+	std::cout << "Setting new chunk size" << std::endl;
 	std::vector<char>&		buffer = requestData.buffer;
-	size_t					lineBreakLength = 2;
-	size_t					indexAfterStoi = 0;
+	std::string				hexString = "0123456789abcdef";
+	size_t					lineBreakLength = 2; // "\r\n"
+	size_t					hexStringIndex = 0;
+	size_t					i = 0;
 
-	try {
-		// std::cout << "Buffer contains:\n\n" << requestData.buffer.data() << std::endl<< std::endl<< std::endl;
-		requestData.chunkSize = std::stoi(buffer.data(), &indexAfterStoi, 16);
-		std::cout << "Chunk size: " << requestData.chunkSize << std::endl;
-		requestData.buffer.erase(buffer.begin(), buffer.begin() + indexAfterStoi + lineBreakLength * 2);
-		if (requestData.chunkSize == 0)
-			return ( true );
+	requestData.chunkSize = 0;
+	// Simple hex to decimal converter:	
+	while (i < buffer.size()) {
+		if (buffer[i] == '\r')
+			break ;
+
+		hexStringIndex = hexString.find(tolower(buffer[i]));
+		if (hexStringIndex != std::string::npos)
+			requestData.chunkSize *= 16 + hexStringIndex;
+		else
+			throw ( std::runtime_error("Bad Request\nInvalid chunk header") );
+		i++;
 	}
-	catch(const std::exception& e) {
-		throw ( std::runtime_error("Invalid block size\nBad Request") );
-	}
+
+	// If the index of our buffer is not an '\r' it is an invalid chunk header
+	if (buffer[i] != '\r')
+		throw ( std::runtime_error("Bad Request\nInvalid chunk header") );
+	buffer.erase(buffer.begin(), buffer.begin() + i + lineBreakLength);
+
+	// The final delimiter chunk will have a size of 0 notifying us that we have read all data
+	if (requestData.chunkSize == 0)
+		return ( true );
 	return ( false );
 }
 
 static void	moveChunk( t_requestData& requestData )
 {
+	std::cout << "Moving chunk" << std::endl;
 	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
 	std::vector<char>&		buffer = requestData.buffer;
-	size_t					lineBreakLength = 2;
+	size_t					lineBreakLength = 2; // "/r/n"
 	size_t					amountToMove;
 
 	amountToMove = requestData.chunkSize;
-	std::cout << "Amount left from this chunk: " << amountToMove << std::endl;
 	if (amountToMove > buffer.size())
 		amountToMove = buffer.size();
-	std::cout << "After if check: " << amountToMove << std::endl << std::endl << std::endl << std::endl;
 
 	chunkedBuffer.insert(chunkedBuffer.end(), buffer.begin(), buffer.begin() + amountToMove);
 	requestData.chunkSize -= amountToMove;
 
+	// If we have a chunkSize of 0 we have read the entire chunk and we need to trim the \r\n from the buffer
 	if (requestData.chunkSize == 0)
 		buffer.erase(buffer.begin(), buffer.begin() + amountToMove + lineBreakLength);
 	else
@@ -174,9 +198,16 @@ static void	moveChunk( t_requestData& requestData )
 
 static bool	parseChunkEncoding( t_requestData& requestData )
 {
+	std::cout << "parsing chunked encoding" << std::endl;
 	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
 	std::vector<char>&		buffer = requestData.buffer;
 	bool					allChunksRead = false;
+
+	if (requestData.movedHeaders == false) {
+		moveHeadersIntoBuffer(requestData);
+		requestData.movedHeaders = true;
+		// return false;
+	}
 
 	while (buffer.size() > 0 && allChunksRead == false) {
 		if (requestData.chunkSize != 0) // we still have to move stuff out from the old buffer
@@ -185,10 +216,18 @@ static bool	parseChunkEncoding( t_requestData& requestData )
 			allChunksRead = setNewChunkSize(requestData);
 	}
 
+	if (allChunksRead) {
+		std::ofstream outputFile("test.jpg");
 
-	if ( allChunksRead ) {
+		
 		// Move everything from the chunked buffer into the regular buffer so we can use it in the response parser
 		buffer.insert(buffer.end(), chunkedBuffer.begin(), chunkedBuffer.end());
+		for (auto it = buffer.begin(); it != buffer.end(); it++)
+		{
+			outputFile << (char) *it;
+
+			std::cout << "Adding char" << std::endl;
+		}
 		chunkedBuffer.clear();
 		return ( true );
 	}
@@ -220,9 +259,21 @@ static void	readFromSocket( int socketFd, t_requestData& requestData )
 	std::vector<char>	newRead(READ_SIZE);
 	ssize_t				bytesRead;
 
+	std::cout << "READING" << std::endl;
+
 	bytesRead = recv( socketFd, newRead.data(), READ_SIZE, 0 );
 	if (bytesRead < 0)
 		throw ( std::runtime_error("Failed to read from socket") );
+
+	std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
+
+	std::cout << "Buffer:\n";
+	for (size_t i = 0; i < bytesRead; i++)
+	{
+		std::cout << newRead[i];
+	}
+		std::cout << std::endl;
+	
 
 	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
 	requestData.totalBytesRead += bytesRead;
@@ -238,6 +289,7 @@ void	ClientHandler::resetState( void )
 	_requestData.readHeaders = false;
 	_requestData.totalBytesRead = 0;
 	_requestData.chunkSize = 0;
+	_requestData.movedHeaders = false;
 }
 
 void	ClientHandler::handleRead( int fd )
@@ -263,7 +315,6 @@ void	ClientHandler::handleRead( int fd )
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer);
 	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
-	this->resetState();
 }
 
 void	ClientHandler::handleWrite( int fd )
@@ -291,4 +342,5 @@ void	ClientHandler::handleWrite( int fd )
 	}
 
 	std::cout << RED "Sent all data" RESET << std::endl;
+	this->resetState();
 }
