@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/25 13:41:16 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/11 15:45:32 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,7 +136,7 @@ void	EventHandler::handleRead( int fd, Config &config )
 	// std::vector<char> v;
 	// std::copy(s.begin(), s.end(), std::back_inserter(v));
 	std::string response = server.parseRequestandGiveReponse(_requestData.buffer, config);
-	
+	std::cout << "Response: " << response << std::endl;
 	// Convert the response string to bytes
 	const char *responseBytes = response.c_str();
 	// size_t responseSize = response.size();
