@@ -126,7 +126,7 @@ std::string extractContent(const std::string &inputText, const std::string &boun
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer)
+std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer, Config &config)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);

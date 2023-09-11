@@ -43,45 +43,14 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-void	 setMessageBody(Config &config)
+void	 HttpResponse::setMessageBody(Config &config)
 {
 	std::map<std::string, int>::iterator it;
-    for (it = config.servers[0].errorPage.begin(); it != config.servers[0].errorPage.end(); ++it) {
-        if (_status_code == it->first)
-		
-		std::cout << "Key: " << it->first << ", Value: " << it->second << std::endl;
-    }
-}
-
-std::string HttpResponse::buildResponse( Config &config)
-{
-	setMessageBody(config);
-	std::string str;
-	if (!_status_code)
-		_status_code = 200;
-	if (_reason_phrase.empty())
-		_reason_phrase = "OK";
-	if (_content_type.empty())
-		_content_type = "text/html";
-	if (_status_code == 200)
+	std::string errorPage = config.getServer("_").getErrorPage(_status_code);
+	std::cout << "errorPage: " << errorPage << std::endl;
+	if (errorPage.empty() && _status_code != 200)
 	{
-		std::ifstream f("src/http/index.html"); //taking file as inputstream
-		std::string s;
-		if (f.is_open())
-		{
-			std::ostringstream ss;
-			ss << f.rdbuf(); // reading data
-			s = ss.str();
-		}
-		else
-		{
-			std::cout << "Error opening file";
-		}
-		_message_body = s;
-	}
-	if (_status_code != 200)
-		{
-			std::ifstream error("default_error.html"); //taking file as inputstream
+		std::ifstream error("default_error.html"); //taking file as inputstream
 		std::string e;
 		if (error.is_open())
 		{
@@ -90,13 +59,57 @@ std::string HttpResponse::buildResponse( Config &config)
 			e = ss.str();
 			replace(e, "[ERRORCODE]", std::to_string(_status_code));
 			replace(e, "[REASONPHRASE]", _reason_phrase);
+			_message_body = e;
 		}
 		else
 		{
 			std::cout << "Error opening file";
 		}
-		_message_body = e;
 	}
+	else if (_status_code != 200)
+	{
+		std::ifstream error(config.getServer("_").getRoot() + errorPage); //taking file as inputstream
+		std::string e;
+		if (error.is_open())
+		{
+			std::ostringstream ss;
+			ss << error.rdbuf(); // reading data
+			e = ss.str();
+			_message_body = e;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+	}
+	else
+	{
+		std::ifstream f("src/http/index.html"); //taking file as inputstream
+		std::string s;
+		if (f.is_open())
+		{
+			std::ostringstream ss;
+			ss << f.rdbuf(); // reading data
+			s = ss.str();
+			_message_body = s;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+	}
+}
+
+std::string HttpResponse::buildResponse( Config &config)
+{
+	std::string str;
+	if (!_status_code)
+		_status_code = 200;
+	if (_reason_phrase.empty())
+		_reason_phrase = "OK";
+	if (_content_type.empty())
+		_content_type = "text/html";
+	setMessageBody(config);
 	str += "HTTP/1.1 ";
 	str += std::to_string(_status_code);
 	str += " ";
