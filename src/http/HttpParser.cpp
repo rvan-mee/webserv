@@ -85,8 +85,8 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
         // store token string in the vector
         v.push_back(s);
     }
-    // if ((int)v.size() != 2)
-    //     throw ( std::runtime_error( "wrong header field" ) );
+    if ((int)v.size() < 2)
+        throw ( std::runtime_error( "wrong header field" ) );
     if (std::isspace(v[0].back()))
         throw ( std::runtime_error( "whitespace before header field semicolon" ) );
     v[0].erase(std::remove(v[0].begin(), v[0].end(), ' '), v[0].end()); // remove whitespace
