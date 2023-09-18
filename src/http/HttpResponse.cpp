@@ -10,8 +10,8 @@ HttpResponse::HttpResponse()
 
 void HttpResponse::setContentType(std::string contentType)
 {
-	if (contentType.empty())
-		throw(std::runtime_error("no content-type in request found"));
+	// if (contentType.empty())
+	// 	throw(std::runtime_error("no content-type in response found"));
 	_content_type = contentType;
 }
 

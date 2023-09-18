@@ -54,7 +54,7 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
         v.push_back(s);
     }
     if ((int)v.size() != 3)
-        return (response.setError(400, "wrong request line"));
+        return (response.setError(400, "Bad Request"));
     if (v[0] == "GET")
         setMethod(GET);
     else if (v[0] == "POST")
@@ -62,11 +62,13 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
     else if (v[0] == "DELETE")
         setMethod(DELETE);
     else
-        throw ( std::runtime_error( "wrong method" ) );
+        return (response.setError(501, "Not Implemented"));
+    if (v[1].empty())
+        return (response.setError(400, "Bad Request"));
     setURI(v[1]);
     v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
     if (v[2] != "HTTP/1.1")
-        throw ( std::runtime_error( "HTTP 1.1 not given" ) );
+        return (response.setError(505, "HTTP Version Not Supported"));
 }
 
 /**
@@ -88,7 +90,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
     // if ((int)v.size() != 2)
     //     throw ( std::runtime_error( "wrong header field" ) );
     if (std::isspace(v[0].back()))
-        throw ( std::runtime_error( "whitespace before header field semicolon" ) );
+        return (response.setError(400, "Bad Request"));
     v[0].erase(std::remove(v[0].begin(), v[0].end(), ' '), v[0].end()); // remove whitespace
     v[1].erase(std::remove(v[1].begin(), v[1].end(), ' '), v[1].end()); // remove whitespace
     v[1].erase(std::remove(v[1].begin(), v[1].end(), '\r'), v[1].end()); // remove \r
@@ -97,29 +99,30 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
     if (v[0] == "Host")
         setHost(v[1]);
 }
-std::string extractContent(const std::string &inputText, const std::string &boundary) {
-  std::istringstream input(inputText);
-    std::string line;
-    std::ostringstream extractedContent;
-        std::cout << "inputText" << inputText << std::endl;
 
-    while (std::getline(input, line)) {
-        if (line.find("Content-Type:") != std::string::npos)
-        {
+// std::string extractContent(const std::string &inputText, const std::string &boundary) {
+//   std::istringstream input(inputText);
+//     std::string line;
+//     std::ostringstream extractedContent;
+//         std::cout << "inputText" << inputText << std::endl;
 
-            while (std::getline(input, line))
-            {
-                std::cout << "line" << line << std::endl;
-                if (line.find(boundary) != std::string::npos)
-                  break;
-                extractedContent << line << "\n";
-            }
-        }
-        // if (line.find(boundary) != std::string::npos)
-        //     break;
-    }
-    return extractedContent.str();
-}
+//     while (std::getline(input, line)) {
+//         if (line.find("Content-Type:") != std::string::npos)
+//         {
+
+//             while (std::getline(input, line))
+//             {
+//                 std::cout << "line" << line << std::endl;
+//                 if (line.find(boundary) != std::string::npos)
+//                   break;
+//                 extractedContent << line << "\n";
+//             }
+//         }
+//         // if (line.find(boundary) != std::string::npos)
+//         //     break;
+//     }
+//     return extractedContent.str();
+// }
 
 /**
  * @brief Parse the request and save the information

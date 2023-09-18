@@ -1,7 +1,7 @@
 - add serverName from config in http response
 - make ability to import error pages from config @done
 - add right error codes in current parser
-- recognise cgi request
+- recognise cgi request @done
 - cgi output parser python
 - save file in correct folder and make Http response with file in it (change img in html)
 - handle turn on or off directory listing for request
