@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/20 13:49:29 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 13:27:38 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/11 15:50:15 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,6 +89,10 @@ void    Server::parseLocationBlock( std::vector<std::string> &tokens )
             newLocation.parseInclude( tokens );
         else if ( tokens[0] == "autoindex")
             newLocation.parseAutoindex( tokens );
+        else if ( tokens[0] == "alias" )
+            newLocation.parseAlias( tokens );
+        else if ( tokens[0] == "redirect" )
+            newLocation.parseRedirect( tokens );
         else
             throw ( std::runtime_error( "Invalid instruction in Location block" ) );
     }

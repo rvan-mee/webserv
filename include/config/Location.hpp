@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/24 12:19:54 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 15:55:46 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/11 15:41:04 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ class Location
 	    std::vector<std::string>		fastcgiParam;
 	    std::vector<std::string>		include;
 		std::string						alias;
+		std::string						redirect;
 
     public:
 
@@ -52,6 +53,7 @@ class Location
 		void	parseFastcgiParam( std::vector<std::string> &tokens );
 		void	parseInclude( std::vector<std::string> &tokens );
 		void	parseAlias( std::vector<std::string> &tokens );
+		void	parseRedirect( std::vector<std::string> &tokens );
 
     /******************************
 	* Getters
@@ -67,6 +69,7 @@ class Location
 		std::vector<std::string>	getFastcgiParam( void ) const;
 		std::vector<std::string>	getInclude( void ) const;
 		std::string					getAlias( void ) const;
+		std::string					getRedirect( void ) const;
 };
 
 #endif

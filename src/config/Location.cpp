@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/24 12:42:47 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 16:17:42 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/11 15:45:59 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,9 @@ Location::Location( void ) :
     fastcgiPass( std::string() ),
     fastcgiIndex( std::string() ),
     fastcgiParam( std::vector<std::string>() ),
-    include( std::vector<std::string>() )
+    include( std::vector<std::string>() ),
+    alias( std::string() ),
+    redirect( std::string() )
 {
 }
 
@@ -222,6 +224,26 @@ void    Location::parseInclude( std::vector<std::string> &tokens )
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
+/**
+ * @brief Parse the redirect instruction in a location block.
+ * 
+ */
+void    Location::parseRedirect( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'redirect' token.
+
+    for ( int i = 0; tokens[0] != ";"; i++ )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid 'redirect' instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'redirect' instructions in location block." ) );
+        this->redirect = tokens[0];
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
 /******************************
 * Getters
 *****************************/
@@ -318,4 +340,12 @@ std::vector<std::string> Location::getInclude( void ) const
 std::string Location::getAlias( void ) const
 {
     return ( this->alias );
+}
+
+/**
+ * @brief Returns the redirect of the given location block.
+ */
+std::string Location::getRedirect( void ) const
+{
+    return ( this->redirect );
 }
