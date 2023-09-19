@@ -37,7 +37,6 @@ CONFIG_SRCS			:=	Config.cpp			\
 						Utils.cpp
 
 KQUEUE_SRCS			:=	ClientHandler.cpp	\
-						FileHandler.cpp		\
 						KqueueUtils.cpp
 
 HTTP_SRCS			:= 	HttpServer.cpp		\
@@ -70,7 +69,6 @@ CONFIG_INCS			:=	Config.hpp			\
 						Utils.hpp
 
 KQUEUE_INCS			:=	ClientHandler.hpp	\
-						FileHandler.hpp		\
 						KqueueUtils.hpp
 
 # SOCKET_INCS			:=
