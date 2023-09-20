@@ -6,13 +6,14 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:37:19 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/22 15:26:10 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/20 21:02:43 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CGIHANDLER_HPP
 # define CGIHANDLER_HPP
 
+#include <EventPoll.hpp>
 #include <vector>
 
 class CgiHandler
@@ -22,7 +23,7 @@ class CgiHandler
 
 		void	parseCgiOutput( void );
 
-		int					_kqueueFd;
+		EventPoll&			_poll;
 		int					_pipeRead;
 		int					_pipeWrite;
 		std::vector<char>	_cgiOutput;
@@ -32,7 +33,7 @@ class CgiHandler
 		int					_forkPid;
 
 	public:
-		CgiHandler( int kqueueFd );
+		CgiHandler( EventPoll& poll );
 		~CgiHandler();
 	
 		void	setWriteBuffer( std::vector<char>& buffer );

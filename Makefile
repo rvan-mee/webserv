@@ -17,8 +17,9 @@ LIGHT_CYAN 			:=	\e[96m
 INCL_DIR			:=	include
 SRC_DIR				:=	src
 CGI_DIR				:=	cgi
+CLIENT_DIR			:=	client
 CONFIG_DIR			:=	config
-KQUEUE_DIR			:=	kqueue
+POLL_DIR			:=	poll
 SOCKET_DIR			:=	socket
 HTTP_DIR			:=	http
 UTILS_DIR			:=	utils
@@ -31,13 +32,15 @@ MAIN				:=	main.cpp
 
 CGI_SRCS			:=	CgiHandler.cpp
 
+CLIENT_SRCS			:= ClientHandler.cpp
+
 CONFIG_SRCS			:=	Config.cpp			\
 						Location.cpp		\
 						Server.cpp			\
 						Utils.cpp
 
-KQUEUE_SRCS			:=	ClientHandler.cpp	\
-						KqueueUtils.cpp
+POLL_SRCS			:=	EventPoll.cpp
+# KqueueUtils.cpp
 
 HTTP_SRCS			:= 	HttpServer.cpp		\
 						HttpResponse.cpp	\
@@ -50,8 +53,9 @@ HTTP_SRCS			:= 	HttpServer.cpp		\
 
 SRCS				:= $(MAIN)
 SRCS				+= $(addprefix $(CGI_DIR)/, $(CGI_SRCS))
+SRCS				+= $(addprefix $(CLIENT_DIR)/, $(CLIENT_SRCS))
 SRCS				+= $(addprefix $(CONFIG_DIR)/, $(CONFIG_SRCS))
-SRCS				+= $(addprefix $(KQUEUE_DIR)/, $(KQUEUE_SRCS))
+SRCS				+= $(addprefix $(POLL_DIR)/, $(POLL_SRCS))
 SRCS				+= $(addprefix $(SOCKET_DIR)/, $(SOCKET_SRCS))
 SRCS				+= $(addprefix $(HTTP_DIR)/, $(HTTP_SRCS))
 SRCS				+= $(addprefix $(UTILS_DIR)/, $(UTILS_SRCS))
@@ -63,13 +67,14 @@ SRCP				:= $(addprefix $(SRC_DIR)/, $(SRCS))
 
 CGI_INCS			:=	CgiHandler.hpp
 
+CLIENT_INCS			:=	ClientHandler.hpp
+
 CONFIG_INCS			:=	Config.hpp			\
 						Location.hpp		\
 						Server.hpp			\
 						Utils.hpp
 
-KQUEUE_INCS			:=	ClientHandler.hpp	\
-						KqueueUtils.hpp
+POLL_INCS			:=	EventPoll.hpp
 
 # SOCKET_INCS			:=
 
@@ -78,15 +83,17 @@ HTTP_INCS			:=	HttpServer.hpp
 # UTILS_INCS			:=						
 
 INCS				+= $(addprefix $(CGI_DIR)/, $(CGI_INCS))
+INCS				+= $(addprefix $(CLIENT_DIR)/, $(CLIENT_INCS))
 INCS				+= $(addprefix $(CONFIG_DIR)/, $(CONFIG_INCS))
-INCS				+= $(addprefix $(KQUEUE_DIR)/, $(KQUEUE_INCS))
+INCS				+= $(addprefix $(POLL_DIR)/, $(POLL_INCS))
 INCS				+= $(addprefix $(SOCKET_DIR)/, $(SOCKET_INCS))
 INCS				+= $(addprefix $(HTTP_DIR)/, $(HTTP_INCS))
 INCS				+= $(addprefix $(UTILS_DIR)/, $(UTILS_INCS))
 
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(CGI_DIR)/)
+INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(CLIENT_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(CONFIG_DIR)/)
-INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(KQUEUE_DIR)/)
+INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(POLL_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(SOCKET_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(HTTP_DIR)/)
 INC_DIRS			+= $(addprefix -I$(INCL_DIR)/, $(UTILS_DIR)/)

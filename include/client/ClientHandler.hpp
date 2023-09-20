@@ -13,6 +13,7 @@
 #ifndef CLIENTHANDLER_HPP
 # define CLIENTHANDLER_HPP
 
+#include <EventPoll.hpp>
 #include <CgiHandler.hpp>
 #include <Config.hpp>
 #include <string>
@@ -42,9 +43,10 @@ class ClientHandler
 		std::string			_response;
 		int					_bytesWritten;
 		Config&				_config;
+		EventPoll&			_poll;
 
 	public:
-		ClientHandler( int socketFd, int kqueueFd, Config& config );
+		ClientHandler( int socketFd, EventPoll& poll, Config& config );
 		~ClientHandler();
 
 		bool	isEvent( int fd );

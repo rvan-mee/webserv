@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/23 15:31:12 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/20 21:03:04 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
 
-CgiHandler::CgiHandler( int kqueueFd ) :
-	_kqueueFd(kqueueFd),
+CgiHandler::CgiHandler( EventPoll& poll ) :
+	_poll(poll),
 	_pipeRead(-1),
 	_pipeWrite(-1),
 	_bytesRead(0),

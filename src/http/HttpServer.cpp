@@ -6,19 +6,18 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/31 14:24:23 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/20 21:26:02 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <HttpServer.hpp>
 #include <ClientHandler.hpp>
-#include <KqueueUtils.hpp>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdexcept> 
 #include <sys/socket.h> 
 #include <netinet/in.h> // sockaddr_in
-#include <sys/event.h> // kqueue
+#include <poll.h>
 #include <unistd.h> // close()
 #include <iostream> 
 
@@ -88,46 +87,32 @@ void	HttpServer::initServer( Config &config )
 	/* Start listening to the sockets for connections */
 	this->listenToSockets();
 
-	/* Initialize the Kqueue */
-	this->setKqueue();
+	/* Add all sockets to the poll list */
+	this->pollSockets();
 
 	/* The following loop will continue to execute as long as the condition in the while-loop 
 	is true (always). This keeps the loop running repeatedly, allowing the server to remain 
 	active and monitor events on the channel. */
-	int	numEvents;
-	int	count = 0;
+	int		ready;
 	while ( true )
 	{
-		/* The kevent function is used to wait and check for events on the this->kqueueFd 
-		channel (a file system descriptor) with the event structure this->event. 
-		The kevent function is set to a blocking mode because the KEVENT_FLAG_NONBLOCK is 
-		not passed in the function call. This means the function will wait (block) until at 
-		least one event occurs. If an event occurs, the details of the event are stored 
-		in the array this->event, and the number of events is stored in the variable numEvents.*/
-		numEvents = kevent( _kqueueFd, NULL, 0, _event, MAX_CONNECTIONS, NULL );
-		if ( numEvents < 0 ) {
+		_poll.updateEventList();
+		pollfd*	events = _poll.getEvents().data();
+		size_t	numEvents = _poll.getEvents().size();
+
+		ready = poll(events, numEvents, -1);
+		if (ready < 0) {
 			closeServerSockets();
-			throw ( std::runtime_error( "Server Terminated or Failed to wait for events" ) );
+			throw ( std::runtime_error( "Failed to wait for events" ) );
 		}
 
-		/* A loop is executed over the received events in _event to process each one. 
-		There are three possible events that can occur: 
-		1. A client has disconnected.
-		2. A new client has connected to the server.
-		3. The server has to read from an fd.
-		4. The server has to write to an fd. */
-		for (int i = 0; i < numEvents; i++)
-		{
-			std::cout << "Handling event: " << count++ << std::endl;
-			int	eventFd = _event[i].ident;
-			// std::cout << "\n\nNew event on fd: " << eventFd << "\nfilter: "\
-						// << (_event[i].filter == EVFILT_READ ? "READ" : "WRITE") << "\nflags: "\
-						// << _event[i].flags << "\nfflags: " << _event[i].fflags << std::endl;
+		for (size_t i = 0; i < numEvents; i++) {
+			// This event does not contain an fd that is ready
+			if (events[i].revents == 0)
+				continue ;
+			
+			int eventFd = events[i].fd;
 
-			/* If an event is detected on the serverSocket, it typically means 
-			an incoming connection from a new client. In that case, the connection 
-			is accepted, and the clientSocket is added to the _kqueueFd 
-			channel to monitor it for read events (reading data from the client). */
 			if ( this->isServerSocket(eventFd) )
 			{
 				int	clientSocket = accept( eventFd, NULL, NULL );
@@ -136,11 +121,12 @@ void	HttpServer::initServer( Config &config )
 					throw ( std::runtime_error( "Failed to accept connection" ) );
 				}
 
-				/* Add the client socket to the kqueue */
-				addKqueueEventFilter(_kqueueFd, clientSocket, EVFILT_READ);
+				/* Add the client socket to the poll list */
+				_poll.addEvent(clientSocket, POLLIN);
 
-				ClientHandler*	newEvent = new ClientHandler(clientSocket, _kqueueFd, config);
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
 				_eventList.push_back(newEvent);
+				continue ;
 			}
 
 			/* If the event is not on the serverSocket, we dont need to accept any new requests.
@@ -151,21 +137,22 @@ void	HttpServer::initServer( Config &config )
 
 			try {
 				/* If the client had disconnected, close the connection */
-				if ( _event[i].flags & EV_EOF ) {
+				if ( events[i].revents & POLLHUP ) { // TODO: still need to watch out that it is not a pipe closure?
 					std::cout << RED "Closing client connection" RESET << std::endl;
 					delete _eventList[eventIndex];
 					_eventList.erase(_eventList.begin() + eventIndex);
+					_poll.removeEvent(eventFd);
 					close(eventFd);
 				}
-				else if ( _event[i].filter == EVFILT_READ ) {
+				else if ( events[i].revents & POLLIN ) {
 					std::cout << GREEN "Handling read event" RESET << std::endl;
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
-				else if ( _event[i].filter == EVFILT_WRITE) {
+				else if ( events[i].revents & POLLOUT ) {
 					std::cout << BLUE "Handling write event" RESET << std::endl;
 					_eventList[eventIndex]->handleWrite(eventFd);
 				}
-			} catch(const std::exception& e) {
+			} catch (const std::exception& e) {
 				std::cerr << e.what() << '\n';
 			}
 		}
@@ -264,46 +251,10 @@ void	HttpServer::listenToSockets( void )
 	}
 }
 
-/**
- * @brief Set up the kqueue for the HTTP server to listen on.
- * @throw std::runtime_error if something goes wrong during the setup
- */
-void	HttpServer::setKqueue( void )
+void	HttpServer::pollSockets( void )
 {	
-	/* Create kqueue. Kqueue is a kernel event notification mechanism.
-	It allows the user to monitor multiple file descriptors to see if
-	they are ready for reading or writing.
-	 */
-	_kqueueFd = kqueue();
-	if ( _kqueueFd < 0 ) {
-		closeServerSockets();
-		throw ( std::runtime_error( "Failed to create kqueue" ) );
-	}
-
-	/* Set event. The parameters of EV_SET are as follows:
-	1. The first parameter is the event to be modified. 
-	In this case, it is the event struct in the HttpServer class.
-	2. The second parameter is the file descriptor to be monitored, 
-	in this case the server socket. 
-	3. The third parameter is the type of event to be monitored 
-	for, in this case read events. 
-	4. The fourth parameter is the action to be taken for the event,
-	in this case add the event to the kqueue. 
-	5. The fifth parameter is the filter flag for the event type. 
-	6. The sixth parameter is the flags for the event type.
-	7. The seventh parameter is the data to be passed to the callback function
-	in the event of an event. Here it is NULL because we don't need to pass
-	any data to the callback function.
-	*/
-	for (size_t i = 0; i < _serverSockets.size(); i++)
-	{
-		EV_SET( _event, _serverSockets[i], EVFILT_READ, EV_ADD, 0, 0, NULL );
-
-		// Kevent is used to register events with the kqueue and to monitor them for changes.
-		if ( kevent( _kqueueFd, _event, 1, NULL, 0, NULL ) < 0 ) {
-			close(_kqueueFd);
-			closeServerSockets();
-			throw ( std::runtime_error( "Failed to set event" ) );
-		}
+	// Add all the sockets to our poll list
+	for (size_t i = 0; i < _serverSockets.size(); i++) {
+		_poll.addEvent(_serverSockets[i], POLLIN);
 	}
 }

@@ -11,7 +11,7 @@
 /* ************************************************************************** */
 
 #include <ClientHandler.hpp>
-#include <KqueueUtils.hpp>
+// #include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <unistd.h>
@@ -31,27 +31,19 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
-ClientHandler::ClientHandler( int socketFd, int kqueueFd, Config& config ) : 
-	_kqueueFd(kqueueFd),
+ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 	_socketFd(socketFd),
-	_cgi(kqueueFd),
+	_cgi(poll),
 	_bytesWritten(0),
-	_config(config)
+	_config(config),
+	_poll(poll)
 {
-	_requestData.totalBytesRead = 0;
-	_requestData.headerSize = 0;
-	_requestData.contentLength = 0;
-	_requestData.chunkSize = 0;
-	_requestData.readHeaders = false;
-	_requestData.contentLengthSet = false;
-	_requestData.movedHeaders = false;
+	this->resetState();
 }
 
 ClientHandler::~ClientHandler()
 {
-	// TODO: remove all kqueue events related to this?
-
-	// it seems events get automatically deleted on FD closure.
+	// TODO: remove all poll events related to this?
 }
 
 bool	ClientHandler::isEvent( int fd )
@@ -266,7 +258,7 @@ void	ClientHandler::handleRead( int fd )
 	// if all of the data we expect has not been read yet we add another event filter
 	// and wait more more data to be available for reading
 	if (!allRequestDataRead(_requestData)) {
-		addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_READ);
+		// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_READ);
 		return ;
 	}
 
@@ -277,7 +269,8 @@ void	ClientHandler::handleRead( int fd )
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer);
-	addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
+	_poll.addEvent(_socketFd, POLLOUT);
+	// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 }
 
 void	ClientHandler::handleWrite( int fd )
@@ -300,10 +293,11 @@ void	ClientHandler::handleWrite( int fd )
 
 	// if all data hasn't been sent yet:
 	if (_response.size() != 0) {
-		addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
+		// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 		return ;
 	}
 
 	std::cout << RED "Sent all data" RESET << std::endl;
 	this->resetState();
+	_poll.removeEvent(_socketFd);
 }
