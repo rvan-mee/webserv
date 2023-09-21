@@ -121,9 +121,7 @@ std::string HttpResponse::buildResponse( Server server)
 	if (!server.getServerNames()[0].empty())
 		str += "\r\nServer: " + server.getServerNames()[0];
 	str += "\r\n\r\n";
-	// str += s;
 	str+= _message_body;
 	str += "\r\n";
-	// str+= "HTTP/1.1 500 nope\r\nContent-Length: 88\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n<html>\n<body>\n<h1>Hello,
 	return (str);
 }
