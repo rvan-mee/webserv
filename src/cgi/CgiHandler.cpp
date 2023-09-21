@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/30 16:56:31 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/21 16:29:57 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <KqueueUtils.hpp>
 #include <iostream>
 #include <vector>
+#include <sys/event.h>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
@@ -84,7 +85,7 @@ void	CgiHandler::handleWrite( void )
 	if (bytesSent < 0)
 		throw ( std::runtime_error("Failed to send response to client") );
 
-	_cgiInput.erase(0, bytesSent);
+	_cgiInput.erase(_cgiInput.begin(), _cgiInput.begin() + bytesSent);
 
 	if (_cgiInput.size() == 0) {
 		// wrote everything to pipe
@@ -118,13 +119,25 @@ void	CgiHandler::startPythonCgi( void )
 	char *args[] = { "python", "/Users/cpost/Desktop/webserv/src/test.py", NULL };
 	
 	// Init pipes. Throws runtime_error on failure.
-	if ( pipe( pipeToCgi ) == -1 || pipe( pipeFromCgi ) == -1 )
+	if ( pipe( pipeToCgi ) == -1)
 		throw ( std::runtime_error("Failed to create pipe") );
+	if ( pipe( pipeFromCgi ) == -1 )
+	{
+		close( pipeToCgi[0] );
+		close( pipeToCgi[1] );
+		throw ( std::runtime_error("Failed to create pipe") );
+	}
 		
 	// Fork process. Throws runtime_error on failure.
 	this->_forkPid = fork();
 	if ( this->_forkPid == -1 )
+	{
+		close( pipeToCgi[0] );
+		close( pipeToCgi[1] );
+		close( pipeFromCgi[0] );
+		close( pipeFromCgi[1] );
 		throw ( std::runtime_error( "Failed to fork process" ) );
+	}
 	else if ( this->_forkPid == 0 ) // Child process
 	{
 		// Setup pipes in child process
@@ -134,7 +147,7 @@ void	CgiHandler::startPythonCgi( void )
     	char *env[] = { NULL };
 		execve( PYTHON_PATH, args, env );
 		std::cerr << "Error executing Python script" << std::endl;
-		return ;
+		exit( 1 ) ;
 	}
 	else // Parent process
 	{
@@ -142,7 +155,6 @@ void	CgiHandler::startPythonCgi( void )
 		this->parentInitPipes( pipeToCgi, pipeFromCgi );
 
 		addKqueueEventFilter( _kqueueFd, _pipeWrite, EVFILT_WRITE );
-		this->handleWrite();
 	}
 }
 

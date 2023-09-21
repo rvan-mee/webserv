@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/20 13:49:03 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 13:25:54 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/21 15:10:44 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,7 @@ private:
 	std::vector<std::string>				index;
 	std::string								accessLog;
 	std::string								errorLog;
+    std::string                             uploadsDir;
 
 public:
 
@@ -54,6 +55,7 @@ public:
         void	parseIndex( std::vector<std::string> &tokens );
         void	parseAccessLog( std::vector<std::string> &tokens );
         void	parseErrorLog( std::vector<std::string> &tokens );
+        void    parseUploadsDir( std::vector<std::string> &tokens );
 
 	/******************************
 	* Getters
@@ -68,6 +70,7 @@ public:
         std::string			        getAccessLog( void ) const;
 		std::string			        getErrorLog( void ) const;
         std::vector<std::string>	getIndex( void ) const;
+        std::string                 getUploadsDir( void ) const;
 };
 
 

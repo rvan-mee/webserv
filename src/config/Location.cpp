@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/24 12:42:47 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/11 15:45:59 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/21 15:58:16 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,8 +75,7 @@ void    Location::parseAllow( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'allow' token.
 
-    int i = 0;
-    while ( tokens[0] != ";" )
+    for ( int i = 0; tokens[0] != ";"; i++ )
     {
         if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
             throw ( std::runtime_error( "Invalid 'Allow' instruction in config file" ) );
@@ -104,8 +103,7 @@ void    Location::parseAutoindex ( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'autoindex' token.
 
-    int i = 0;
-    while ( tokens[0] != ";" )
+    for ( int i = 0; tokens[0] != ";"; i++ )
     {
         if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
             throw ( std::runtime_error( "Invalid 'Autoindex' instruction in config file" ) );

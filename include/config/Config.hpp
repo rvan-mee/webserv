@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/23 11:25:45 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/07 13:41:07 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/21 16:34:41 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,6 @@
 
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
-# define CONFIGFILE "nginx.conf"
 
 #include "Server.hpp"
 #include "Location.hpp"
