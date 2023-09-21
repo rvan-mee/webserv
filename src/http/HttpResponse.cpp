@@ -1,4 +1,5 @@
-#include "HttpResponse.hpp"
+#include <HttpResponse.hpp>
+#include <Server.hpp>
 
 HttpResponse::HttpResponse()
 {
@@ -43,10 +44,10 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-void	 HttpResponse::setMessageBody(Config &config, std::string _server_name )
+void	 HttpResponse::setMessageBody( Server server )
 {
 	std::map<std::string, int>::iterator it;
-	std::string errorPage = config.getServer("_").getErrorPage(_status_code);
+	std::string errorPage = server.getErrorPage(_status_code);
 	std::cout << "errorPage: " << errorPage << std::endl;
 	if (errorPage.empty() && _status_code != 200)
 	{
@@ -68,7 +69,7 @@ void	 HttpResponse::setMessageBody(Config &config, std::string _server_name )
 	}
 	else if (_status_code != 200)
 	{
-		std::ifstream error(config.getServer("_").getRoot() + errorPage); //taking file as inputstream
+		std::ifstream error(server.getRoot() + errorPage); //taking file as inputstream
 		std::string e;
 		if (error.is_open())
 		{
@@ -100,7 +101,7 @@ void	 HttpResponse::setMessageBody(Config &config, std::string _server_name )
 	}
 }
 
-std::string HttpResponse::buildResponse( Config &config, std::string _server_name )
+std::string HttpResponse::buildResponse( Server server)
 {
 	std::string str;
 	if (!_status_code)
@@ -109,7 +110,7 @@ std::string HttpResponse::buildResponse( Config &config, std::string _server_nam
 		_reason_phrase = "OK";
 	if (_content_type.empty())
 		_content_type = "text/html";
-	setMessageBody(config, _server_name);
+	setMessageBody(server);
 	str += "HTTP/1.1 ";
 	str += std::to_string(_status_code);
 	str += " ";
@@ -117,8 +118,8 @@ std::string HttpResponse::buildResponse( Config &config, std::string _server_nam
 	str += "\r\n";
 	str += "Content-Type: ";
 	str += _content_type;
-	if (!_server_name.empty())
-		str += "\r\nServer: " + _server_name;
+	if (!server.getServerNames()[0].empty())
+		str += "\r\nServer: " + server.getServerNames()[0];
 	str += "\r\n\r\n";
 	// str += s;
 	str+= _message_body;

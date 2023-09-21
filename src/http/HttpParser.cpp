@@ -130,7 +130,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer, Config &config, Server server)
+std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer, Server server)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -155,7 +155,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer,
     {
         parseCgiRequest(response);
     }
-    return (response.buildResponse(config, server.getServerNames()[0]));
+    return (response.buildResponse(server));
 }
 // A recipient that receives whitespace between the start-line and the first header field MUST either reject the
 //  message as invalid or consume each whitespace-preceded line without further processing of it (i.e., ignore the entire 
