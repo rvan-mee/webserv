@@ -6,11 +6,12 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/11 15:45:32 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/21 11:53:19 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <EventHandler.hpp>
+#include <Server.hpp>
 #include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
@@ -131,11 +132,11 @@ void	EventHandler::handleRead( int fd, Config &config )
 	// all data has been read, now we can parse and prepare a response
 	std::cout << "Request: " << _requestData.buffer.data() << std::endl;
 	// Start parsing the request data
-	HttpRequest server;
-	
+	HttpRequest request;
+	Server server = config.getServer("_");
 	// std::vector<char> v;
 	// std::copy(s.begin(), s.end(), std::back_inserter(v));
-	std::string response = server.parseRequestandGiveReponse(_requestData.buffer, config);
+	std::string response = request.parseRequestandGiveReponse(_requestData.buffer, config, server);
 	std::cout << "Response: " << response << std::endl;
 	// Convert the response string to bytes
 	const char *responseBytes = response.c_str();

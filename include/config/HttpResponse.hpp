@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/11 10:42:55 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/21 11:32:00 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,8 +31,8 @@ class HttpResponse
 	void addLineToBody(std::string line);
 	void printAll();
 	void setError(int statusCode, std::string _reason_phrase);
-	std::string buildResponse( Config &config);
-	void	setMessageBody(Config &config);
+	std::string buildResponse( Config &config, std::string _server_name);
+	void	setMessageBody(Config &config, std::string _server_name);
 
   private:
 	int _status_code;

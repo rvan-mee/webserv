@@ -43,7 +43,7 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-void	 HttpResponse::setMessageBody(Config &config)
+void	 HttpResponse::setMessageBody(Config &config, std::string _server_name )
 {
 	std::map<std::string, int>::iterator it;
 	std::string errorPage = config.getServer("_").getErrorPage(_status_code);
@@ -100,7 +100,7 @@ void	 HttpResponse::setMessageBody(Config &config)
 	}
 }
 
-std::string HttpResponse::buildResponse( Config &config)
+std::string HttpResponse::buildResponse( Config &config, std::string _server_name )
 {
 	std::string str;
 	if (!_status_code)
@@ -109,7 +109,7 @@ std::string HttpResponse::buildResponse( Config &config)
 		_reason_phrase = "OK";
 	if (_content_type.empty())
 		_content_type = "text/html";
-	setMessageBody(config);
+	setMessageBody(config, _server_name);
 	str += "HTTP/1.1 ";
 	str += std::to_string(_status_code);
 	str += " ";
@@ -117,8 +117,9 @@ std::string HttpResponse::buildResponse( Config &config)
 	str += "\r\n";
 	str += "Content-Type: ";
 	str += _content_type;
+	if (!_server_name.empty())
+		str += "\r\nServer: " + _server_name;
 	str += "\r\n\r\n";
-	
 	// str += s;
 	str+= _message_body;
 	str += "\r\n";
