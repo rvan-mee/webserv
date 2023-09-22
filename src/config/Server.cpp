@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/20 13:49:29 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/03 16:15:44 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/21 16:05:59 by cpost         ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,8 @@ Server::Server( void ) :
     errorPage( std::map<int, std::string>() ),
     index( std::vector<std::string>() ),
     accessLog( std::string() ),
-    errorLog( std::string() )
+    errorLog( std::string() ),
+    uploadsDir( std::string() )
 {
 }
 
@@ -87,6 +88,12 @@ void    Server::parseLocationBlock( std::vector<std::string> &tokens )
             newLocation.parseFastcgiParam( tokens );
         else if ( tokens[0] == "include" )
             newLocation.parseInclude( tokens );
+        else if ( tokens[0] == "autoindex")
+            newLocation.parseAutoindex( tokens );
+        else if ( tokens[0] == "alias" )
+            newLocation.parseAlias( tokens );
+        else if ( tokens[0] == "redirect" )
+            newLocation.parseRedirect( tokens );
         else
             throw ( std::runtime_error( "Invalid instruction in Location block" ) );
     }
@@ -158,6 +165,28 @@ void	Server::parseRoot( std::vector<std::string> &tokens )
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
+void    Server::parseAutoindex ( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'autoindex' token.
+
+    for ( int i = 0; tokens[0] != ";"; i++ )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid 'Autoindex' instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'Autoindex' instructions in server block." ) );
+
+        if ( tokens[0] == "on" )
+            this->autoindex = true;
+        else if ( tokens[0] == "off" )
+            this->autoindex = false;
+        else
+            throw ( std::runtime_error( "Error: Invalid argument for 'Autoindex' instruction in location block." ) );
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
 /**
  * @brief Parses the 'error_page' instruction
  * @param tokens Vector with tokens
@@ -199,6 +228,27 @@ void	Server::parseErrorPage( std::vector<std::string> &tokens )
         }
         tempTokens.erase( tempTokens.begin() );
     }
+}
+
+/**
+ * @brief Parses the 'uploads_dir' instruction
+ * @param tokens Vector with tokens
+ */
+void    Server::parseUploadsDir( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'uploads_dir' token.
+
+    for ( int i = 0; tokens[0] != ";"; i++ )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid uploads_dir instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'Uploads_dir' instructions in server block." ) );
+
+        this->uploadsDir = tokens[0];
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
 /**
@@ -312,6 +362,25 @@ std::vector<std::string>    Server::getServerNames( void ) const
 std::string Server::getRoot( void ) const
 {
     return ( this->root );
+}
+
+/**
+ * @brief Returns the uploads directory of the current server block.
+ * @return std::string 
+ */
+std::string Server::getUploadsDir( void ) const
+{
+    return ( this->uploadsDir );
+}
+
+/**
+ * @brief Returns a boolean indicating whether the given server block
+ * has the autoindex enabled.
+ * @return true if autoindex is enabled, false otherwise.
+ */
+bool    Server::getAutoindex( void ) const
+{
+    return ( this->autoindex );
 }
 
 /**
