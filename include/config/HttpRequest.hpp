@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/11 14:09:13 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/21 12:00:38 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,8 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include "HttpResponse.hpp"
+#include <HttpResponse.hpp>
+#include <cstring>
 /**
  * @brief HtppRequest class to parse the request and store the data in the class variables
  * 
@@ -28,7 +29,7 @@ class HttpRequest
 {
 	public:
 		enum requestType { GET, POST, DELETE };
-		std::string    parseRequestandGiveReponse( std::vector<char> buffer );
+		std::string    parseRequestandGiveReponse(std::vector<char> buffer, Server server);
 		void	isRequestLine(std::string line, HttpResponse &response);
 		void	isHeader(std::string line, HttpResponse &response);
 		requestType	getMethod();
@@ -38,6 +39,7 @@ class HttpRequest
 		void	setHost(std::string host);
 		void    addLineToBody(std::string line);
 		void    printAll();
+		void    parseCgiRequest(HttpResponse &response);
 	private:
 		requestType	_request_method;
 		std::string _request_URI;

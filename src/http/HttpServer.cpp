@@ -120,7 +120,7 @@ void	HttpServer::initServer( Config &config )
 			{
 				std::cout << "Handling read event" << std::endl;
 				try {
-					_eventList[eventIndex]->handleRead(eventFd);
+					_eventList[eventIndex]->handleRead(eventFd, config);
 				}
 				catch(const std::exception& e) {
 					std::cerr << e.what() << std::endl;

@@ -40,7 +40,8 @@ HTTP_SRCS			:= 	HttpServer.cpp		\
 						HttpResponse.cpp	\
 						HttpRequest.cpp		\
 						HttpParser.cpp	    \
-						EventHandler.cpp
+						EventHandler.cpp	\
+						parseCgi.cpp
 
 # SOCKET_SRCS			:=
 

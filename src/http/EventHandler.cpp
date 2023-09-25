@@ -6,11 +6,12 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:19:21 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/25 13:41:16 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/21 12:09:21 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <EventHandler.hpp>
+#include <Server.hpp>
 #include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
@@ -113,7 +114,7 @@ static void	readIntoBuffer( int socketFd, t_requestData& requestData )
 	requestData.totalBytesRead += bytesRead;
 }
 
-void	EventHandler::handleRead( int fd )
+void	EventHandler::handleRead( int fd, Config &config )
 {
 	if (fd != _socketFd) {
 		_cgi.handleRead();
@@ -127,19 +128,15 @@ void	EventHandler::handleRead( int fd )
 		addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_READ);
 		return ;
 	}
-
 	// all data has been read, now we can parse and prepare a response
 	std::cout << "Request: " << _requestData.buffer.data() << std::endl;
 	// Start parsing the request data
-	HttpRequest server;
-	
-	// std::vector<char> v;
-	// std::copy(s.begin(), s.end(), std::back_inserter(v));
-	std::string response = server.parseRequestandGiveReponse(_requestData.buffer);
-	
+	HttpRequest request;
+	Server server = config.getServer("_");
+	std::string response = request.parseRequestandGiveReponse(_requestData.buffer, server);
+	std::cout << "Response: " << response << std::endl;
 	// Convert the response string to bytes
 	const char *responseBytes = response.c_str();
-	// size_t responseSize = response.size();
 	// Send the response to the client
 	ssize_t bytesSent = send(_socketFd, responseBytes,
 	(int)strlen(responseBytes), 0);

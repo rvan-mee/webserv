@@ -6,14 +6,15 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:20:05 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/08/24 21:44:11 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/11 10:44:39 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef EVENTHANDLER_HPP
 # define EVENTHANDLER_HPP
 
-#include <CgiHandler.hpp>
+# include <Config.hpp>
+# include <CgiHandler.hpp>
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
@@ -41,7 +42,7 @@ class EventHandler
 		~EventHandler();
 
 		bool	isEvent( int fd );
-		void	handleRead( int fd );
+		void	handleRead( int fd, Config &config );
 		void	handleWrite( int fd );
 };
 
