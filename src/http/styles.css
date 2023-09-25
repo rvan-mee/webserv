@@ -40,8 +40,8 @@
             align-items: flex-start
         }
         .functionbox:hover {
-            transition: box-shadow 0.2s ease-in-out;
-            box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.35);
+            transition: box-shadow top left 0.2s ease-in-out;
+            box-shadow: 10px 10px 10px 5px rgba(0,0,0,0.15);
         }
         .functionbox:hover .buttonCustom {
             background: #ffbf00;
