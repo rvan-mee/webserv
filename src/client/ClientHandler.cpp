@@ -299,5 +299,5 @@ void	ClientHandler::handleWrite( int fd )
 
 	std::cout << RED "Sent all data" RESET << std::endl;
 	this->resetState();
-	_poll.removeEvent(_socketFd);
+	_poll.removeEvent(_socketFd, POLLOUT);
 }

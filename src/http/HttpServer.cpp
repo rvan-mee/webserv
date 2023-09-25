@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:59 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/20 21:26:02 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 14:49:57 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,7 @@ void	HttpServer::initServer( Config &config )
 			throw ( std::runtime_error( "Failed to wait for events" ) );
 		}
 
+		// _poll.printList();
 		for (size_t i = 0; i < numEvents; i++) {
 			// This event does not contain an fd that is ready
 			if (events[i].revents == 0)
@@ -141,7 +142,8 @@ void	HttpServer::initServer( Config &config )
 					std::cout << RED "Closing client connection" RESET << std::endl;
 					delete _eventList[eventIndex];
 					_eventList.erase(_eventList.begin() + eventIndex);
-					_poll.removeEvent(eventFd);
+					_poll.removeEvent(eventFd, POLLIN);
+					_poll.removeEvent(eventFd, POLLOUT);
 					close(eventFd);
 				}
 				else if ( events[i].revents & POLLIN ) {
