@@ -1,0 +1,16 @@
+- pass servername through parser @done
+- add serverName from config in http response @done
+- make ability to import error pages from config @done
+- add right error codes in current parser
+- logic post / get / delete in parser
+- recognise cgi request @done
+- cgi output parser python
+- save file in correct folder and make Http response with file in it (change img in html)
+- handle turn on or off directory listing for request
+- default error pages @done
+- create 301 redirect based on config
+- Default file if request is a directory
+- Add file saving directory (from the config) if a file gets uploaded
+Left to do:
+- Python scripts fixen
+- know which server you are on

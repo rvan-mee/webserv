@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/21 16:29:57 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/25 14:40:20 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,7 +65,11 @@ void	CgiHandler::handleRead( void )
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
 	_bytesRead += currentBytesRead;
-	
+	int i = 0;
+	while (i < _cgiOutput.size())
+	{
+		std::cout << _cgiOutput[i] << std::endl;
+	}
 	// if
 	// TODO: check for EOF
 	// get output into _socketBuffer from EventHandler?
