@@ -1,7 +1,8 @@
 
 NAME				:=	webserv
+PYTHON_PATH 		:= $(shell which python)
+CFLAGS              :=  -Wall -Wextra -std=c++11 -pedantic -DPYTHON_PATH=\"$(PYTHON_PATH)\"
 CC					:=	c++
-CFLAGS				:=	-Wall -Wextra -std=c++11 -pedantic
 
 ################################################################################
 # COLORS

@@ -18,7 +18,7 @@
         }
 
         p {
-            font-size: 1.2rem;
+            font-size: 16px;
             margin-bottom: 20px;
         }
 
@@ -33,27 +33,44 @@
         <h1>Webserv</h1>
         <img src="https://media.giphy.com/media/3o7aDcz6Y0fzWYvU5G/giphy.gif" alt="Twerk" width="300" height="300">
         <p>Code 'n Twerk: Webserver Work</p>
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button>
-        <form action="/action_page.php">
-            <input type="file" id="myFile" name="filename">
-            <input type="submit">
-        </form>
+
+        <div class="functionality">
+            <h4>Do stress test</h4>
+            <p>Lorem ipsum</p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button>
+        </div>
+
+        <div class="functionality">
+            <h5>Upload a file to the server</h5>
+            <form class="submitform" action="/action_page.php">
+                <input type="file" id="myFile" name="filename">
+                <input type="submit">
+            </form>
+        </div>
+
+
         <!-- <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button> -->
 
     </div>
     </div>
     <style>
+        .functionality {
+            width: 80%;
+            padding: 20px;
+            border: 1px solid black;
+            border-radius: 15px;
+            margin: 10px 0;
+        }
         .content {
             display: flex;
             flex-direction: column;
             width: 100%;
             align-items: center;
         }
-
         .buttonCustom {
             width: 120px;
             padding: 10px;
-            border-radius: 50px;
+            border-radius: 15px;
             border: 0px;
             background: #ffbf00;
         }
