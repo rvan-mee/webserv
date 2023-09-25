@@ -119,9 +119,9 @@ std::string HttpResponse::buildResponse( Server server)
 	str += "Content-Type: ";
 	str += _content_type;
 	if (!server.getServerNames()[0].empty())
-		str += "\r\nServer: " + server.getServerNames()[0];
+		str += "\r\nServer: " + server.getServerNames()[0] + "\r\n";
 	str += "Content-Length: ";
-	str += _message_body.size();
+	str += std::to_string(_message_body.size());
 	str += "\r\n\r\n";
 	str += _message_body;
 	str += "\r\n";

@@ -15,7 +15,9 @@
 #include <signal.h>
 #include <iostream>
 #include <vector>
-#include <sys/event.h>
+// #include <sys/event.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024

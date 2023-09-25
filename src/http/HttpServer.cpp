@@ -20,6 +20,7 @@
 #include <poll.h>
 #include <unistd.h> // close()
 #include <iostream> 
+#include <algorithm>
 
 #include <chrono>
 #include <thread>

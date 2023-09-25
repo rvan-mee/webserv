@@ -12,7 +12,7 @@
 
 #include <ClientHandler.hpp>
 #include <sys/socket.h>
-#include <sys/event.h>
+// #include <sys/event.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <HttpRequest.hpp>
@@ -267,6 +267,7 @@ void	ClientHandler::handleRead( int fd )
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("_"));
+	std::cout << "Response: " << _response << std::endl;
 	_poll.addEvent(_socketFd, POLLOUT);
 }
 
