@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/25 14:40:20 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/25 15:21:51 by dkramer       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,7 +74,7 @@ void	CgiHandler::handleRead( void )
 	// TODO: check for EOF
 	// get output into _socketBuffer from EventHandler?
 	// _cgiOutput.shrink_to_fit();
-	// else
+	// else 
 	// TODO: create new read event in kqueue
 }
 
