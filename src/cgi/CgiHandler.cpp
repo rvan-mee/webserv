@@ -6,13 +6,16 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/20 21:03:04 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 15:05:39 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <CgiHandler.hpp>
 #include <unistd.h>
 #include <signal.h>
+#include <iostream>
+#include <vector>
+#include <sys/event.h>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
@@ -59,6 +62,7 @@ void	CgiHandler::handleRead( void )
 	currentBytesRead = read(_pipeRead, &(_cgiOutput[_bytesRead]), READ_SIZE);
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
+
 	_bytesRead += currentBytesRead;
 	
 	// if
@@ -71,17 +75,120 @@ void	CgiHandler::handleRead( void )
 
 void	CgiHandler::handleWrite( void )
 {
-	const int	bytesLeft = _cgiInput.size() - _bytesWrote;
-	int			bytesToWrite = WRITE_SIZE;
-	int			currentWriteAmount;
+	size_t	bytesToWrite = WRITE_SIZE;
 
-	if (bytesLeft < WRITE_SIZE)
-		bytesToWrite = bytesLeft;
+	if (bytesToWrite > _cgiInput.size())
+		bytesToWrite = _cgiInput.size();
 
-	currentWriteAmount = write(_pipeWrite, &(_cgiInput[_bytesWrote]), bytesToWrite);
-	if (currentWriteAmount < 0)
-		throw ( std::runtime_error("Failed to write to the CGI") );
-	_bytesWrote += currentWriteAmount;
+	ssize_t bytesSent = write(_pipeWrite, _cgiInput.data(), bytesToWrite);
+	if (bytesSent < 0)
+		throw ( std::runtime_error("Failed to send response to client") );
 
-	// TODO: create new write event in the kqueue
+	_cgiInput.erase(_cgiInput.begin(), _cgiInput.begin() + bytesSent);
+
+	if (_cgiInput.size() == 0) {
+		// wrote everything to pipe
+		_poll.addEvent(_pipeRead, POLLIN);
+		return ;
+	}
+	_poll.addEvent(_pipeWrite, POLLOUT);
+}
+
+/**
+ * @brief Starts a Python CGI script. 
+ * @note 2 pipes are created.
+ * In the child process we close the write end pipeToCgi[1] and the read end pipeFromCgi[0].
+ * In the parent process we close the read end pipeToCgi[0] and the write end pipeFromCgi[1].
+ * pipeToCgi is used to send data to the CGI script (parent to child). 
+ * pipeFromCgi is used to receive data from the CGI script (child to parent).
+ * Result:
+ *  ________                 _______
+ * |        |  pipeToCgi    |       |
+ * |        |  >--------->  |       |
+ * | Parent |               | Child |
+ * |        |  pipeFromCgi  |       |
+ * |________|  <---------<  |_______|            
+ */
+void	CgiHandler::startPythonCgi( void )
+{
+	int pipeToCgi[2];
+	int pipeFromCgi[2];
+	
+	// temp
+	char *args[] = { "python", "/Users/cpost/Desktop/webserv/src/test.py", NULL };
+	
+	// Init pipes. Throws runtime_error on failure.
+	if ( pipe( pipeToCgi ) == -1)
+		throw ( std::runtime_error("Failed to create pipe") );
+	if ( pipe( pipeFromCgi ) == -1 )
+	{
+		close( pipeToCgi[0] );
+		close( pipeToCgi[1] );
+		throw ( std::runtime_error("Failed to create pipe") );
+	}
+		
+	// Fork process. Throws runtime_error on failure.
+	this->_forkPid = fork();
+	if ( this->_forkPid == -1 )
+	{
+		close( pipeToCgi[0] );
+		close( pipeToCgi[1] );
+		close( pipeFromCgi[0] );
+		close( pipeFromCgi[1] );
+		throw ( std::runtime_error( "Failed to fork process" ) );
+	}
+	else if ( this->_forkPid == 0 ) // Child process
+	{
+		// Setup pipes in child process
+		this->childInitPipes( pipeToCgi, pipeFromCgi );
+
+		// Execute the CGI script
+    	char *env[] = { NULL };
+		execve( PYTHON_PATH, args, env );
+		std::cerr << "Error executing Python script" << std::endl;
+		exit( 1 ) ;
+	}
+	else // Parent process
+	{
+		// Setup pipes in parent process
+		this->parentInitPipes( pipeToCgi, pipeFromCgi );
+
+		_poll.addEvent(_pipeWrite, POLLOUT);
+	}
+}
+
+/**
+ * @brief Setup pipes in child process
+ * @param pipeToCgi 
+ * @param pipeFromCgi 
+ */
+void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
+{
+	// close unused pipe ends
+	close( pipeToCgi[1] ); // Close write end of pipeToCgi
+	close( pipeFromCgi[0] ); // Close read end of pipeFromCgi
+
+	// Redirect stdin and stdout to the pipes
+    dup2( pipeToCgi[0], STDIN_FILENO ); // Redirect pipeToCgi to stdin
+    dup2( pipeFromCgi[1], STDOUT_FILENO ); // Redirect pipeFromCgi to stdout
+
+	// Close the remaining pipe ends that are not used
+	close( pipeToCgi[0] ); // Close read end of pipeToCgi
+	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
+}
+
+/**
+ * @brief Setup pipes in parent process
+ * @param pipeToCgi 
+ * @param pipeFromCgi 
+ */
+void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
+{
+	// close unused pipe ends
+	close( pipeToCgi[0] ); // Close read end of pipeToCgi
+	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
+
+	// Set the pipe ends to the class variables
+	this->_pipeWrite = pipeToCgi[1]; // Write end of pipeToCgi. Send data to CGI script.
+	this->_pipeRead = pipeFromCgi[0]; // Read end of pipeFromCgi. Receive data from CGI script.
 }

@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include <ClientHandler.hpp>
-// #include <KqueueUtils.hpp>
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <unistd.h>
@@ -258,7 +257,6 @@ void	ClientHandler::handleRead( int fd )
 	// if all of the data we expect has not been read yet we add another event filter
 	// and wait more more data to be available for reading
 	if (!allRequestDataRead(_requestData)) {
-		// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_READ);
 		return ;
 	}
 
@@ -268,9 +266,8 @@ void	ClientHandler::handleRead( int fd )
 
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
-	_response = server.parseRequestAndGiveResponse(_requestData.buffer);
+	_response = server.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("_"));
 	_poll.addEvent(_socketFd, POLLOUT);
-	// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 }
 
 void	ClientHandler::handleWrite( int fd )

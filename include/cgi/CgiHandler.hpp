@@ -6,7 +6,7 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:37:19 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/20 21:02:43 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 15:00:19 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,8 @@ class CgiHandler
 		CgiHandler( void );
 
 		void	parseCgiOutput( void );
+		void	childInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
+		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
 
 		EventPoll&			_poll;
 		int					_pipeRead;
@@ -41,6 +43,8 @@ class CgiHandler
 		bool	isEvent(int fd);
 		void	handleRead( void );
 		void	handleWrite( void );
+
+		void	startPythonCgi( void );
 };
 
 #endif

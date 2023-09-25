@@ -36,7 +36,6 @@ class ClientHandler
 	private:
 		ClientHandler( void );
 
-		int					_kqueueFd;
 		int					_socketFd;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;

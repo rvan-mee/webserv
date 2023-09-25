@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/26 13:10:22 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/30 17:15:23 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 14:52:55 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,6 +125,8 @@ void    Config::parseInstruction( std::vector<std::string> &tokens )
         this->parseListen( tokens );
     else if ( tokens[0] == "root" )
         this->parseRoot( tokens );
+    else if ( tokens[0] == "client_max_body_size" )
+        this->parseClientMaxBodySize( tokens );
     else
         throw ( std::runtime_error( "Invalid instruction in config file" ) );
 }
@@ -223,6 +225,10 @@ void    Config::parseServerBlock( std::vector<std::string> &tokens )
             newServer.parseAccessLog( tokens );
         else if ( tokens[0] == "error_log")
             newServer.parseErrorLog( tokens );
+        else if ( tokens[0] == "autoindex" )
+            newServer.parseAutoindex( tokens );
+        else if ( tokens[0] == "uploads_dir" )
+            newServer.parseUploadsDir( tokens );
         else
             throw ( std::runtime_error( "Invalid instruction in server block" ) );
     }
@@ -273,6 +279,47 @@ void	Config::parseRoot( std::vector<std::string> &tokens )
 
         this->root = tokens[0];
         tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
+void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'client_max_body_size' token.
+
+    long number = 0;
+    while ( tokens[0] != ";")
+    {
+        size_t i = 0;
+        /* First, we're going to parse the numbers. We're going to do this by looping
+        through the string and checking if the current character is a digit. If it is,
+        we're going to convert it to an integer and add it to the number variable. */
+        try {
+            number = std::stoi(tokens[0], &i, 10);
+        }
+        catch ( std::exception &e ) {
+            throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
+        }
+        if ( number < 0 )
+            throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
+        /* Now we're going to check whether the current character is a semicolon,
+        or a 'K' or 'M'. If it's a semicolon, we're done. If it's a 'K' or 'M',
+        we're going to multiply the number by 1024 or 1024 * 1024 respectively. */
+        if ( tokens[0][i] == ';')
+            break;
+        else if ( tokens[0][i] == 'K' )
+            number *= 1024;
+        else if ( tokens[0][i] == 'M' )
+            number *= 1024 * 1024;
+        else
+            throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
+        i++;
+        if ( tokens[0][i] != ';' )
+            throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
+        
+        this->clientMaxBodySize = number; // Set the clientMaxBodySize variable.
+
+        tokens.erase( tokens.begin() ); // Remove the number from the tokens vector.
     }
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
@@ -332,4 +379,13 @@ std::string& Config::getRoot( void )
 std::vector<int>& Config::getListen( void )
 {
     return ( this->listen );
+}
+
+/**
+ * @brief Returns the client_max_body_size of the config.
+ * @return unsigned long 
+ */
+unsigned long Config::getClientMaxBodySize( void ) const
+{
+    return ( this->clientMaxBodySize );
 }

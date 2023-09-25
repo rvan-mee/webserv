@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/23 11:25:45 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/30 17:15:10 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 15:10:52 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,6 @@
 
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
-# define CONFIGFILE "nginx.conf"
 
 #include "Server.hpp"
 #include "Location.hpp"
@@ -61,6 +60,7 @@ class Config
 		std::vector<Server>				servers;
 		std::vector<int>				listen;
 		std::string						root;
+		unsigned long					clientMaxBodySize;
 
 	public:
 		
@@ -89,6 +89,7 @@ class Config
 
 		void	parseListen( std::vector<std::string> &tokens );
 		void	parseRoot( std::vector<std::string> &tokens );
+		void	parseClientMaxBodySize( std::vector<std::string> &tokens );
 
 		/******************************
 		 * Getters
@@ -97,6 +98,7 @@ class Config
 		Server				&getServer( std::string serverName );
 		std::string			&getRoot( void );
 		std::vector<int>	&getListen( void );
+		unsigned long		getClientMaxBodySize( void ) const;
 
 };
 

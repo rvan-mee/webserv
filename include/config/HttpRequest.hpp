@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/30 12:52:00 by rvan-mee      ########   odam.nl         */
+/*   Updated: 2023/09/25 15:09:46 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,8 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include "HttpResponse.hpp"
+#include <HttpResponse.hpp>
+#include <cstring>
 /**
  * @brief HtppRequest class to parse the request and store the data in the class variables
  * 
@@ -27,17 +28,18 @@
 class HttpRequest
 {
 	public:
-		enum requestType { GET, POST, DELETE };
-		std::string		parseRequestAndGiveResponse( std::vector<char> buffer );
-		void			isRequestLine(std::string line, HttpResponse &response);
-		void			isHeader(std::string line, HttpResponse &response);
-		requestType		getMethod();
-		void			setMethod(requestType method);
-		void			setURI(std::string target);
-		void			setContentType(std::string contentType);
-		void			setHost(std::string host);
-		void			addLineToBody(std::string line);
-		void			printAll();
+		enum requestType	{ GET, POST, DELETE };
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server);
+		void				isRequestLine(std::string line, HttpResponse &response);
+		void				isHeader(std::string line, HttpResponse &response);
+		requestType			getMethod();
+		void				setMethod(requestType method);
+		void				setURI(std::string target);
+		void				setContentType(std::string contentType);
+		void				setHost(std::string host);
+		void				addLineToBody(std::string line);
+		void				printAll();
+		void				parseCgiRequest(HttpResponse &response);
 
 	private:
 		requestType	_request_method;

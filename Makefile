@@ -1,7 +1,8 @@
 
 NAME				:=	webserv
+PYTHON_PATH 		:= $(shell which python)
+CFLAGS              :=  -Wall -Wextra -std=c++11 -pedantic -DPYTHON_PATH=\"$(PYTHON_PATH)\"
 CC					:=	c++
-CFLAGS				:=	-Wall -Wextra -std=c++11 -pedantic -fsanitize=address -g
 
 ################################################################################
 # COLORS
@@ -40,12 +41,12 @@ CONFIG_SRCS			:=	Config.cpp			\
 						Utils.cpp
 
 POLL_SRCS			:=	EventPoll.cpp
-# KqueueUtils.cpp
 
 HTTP_SRCS			:= 	HttpServer.cpp		\
 						HttpResponse.cpp	\
 						HttpRequest.cpp		\
-						HttpParser.cpp
+						HttpParser.cpp	    \
+						parseCgi.cpp
 
 # SOCKET_SRCS			:=
 
