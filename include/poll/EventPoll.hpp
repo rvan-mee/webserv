@@ -34,8 +34,8 @@ class EventPoll
 		void					printList( void );
 
 	private:
-		std::vector<t_fdToRemove>	_removeList;
-		std::vector<pollfd>			_addList;
+		std::vector<t_fdToRemove>	_removeQueue;
+		std::vector<pollfd>			_addQueue;
 		std::vector<pollfd>			_pollFds;
 };
 

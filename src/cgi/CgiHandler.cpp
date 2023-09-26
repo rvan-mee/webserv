@@ -36,9 +36,9 @@ CgiHandler::CgiHandler( EventPoll& poll ) :
 CgiHandler::~CgiHandler()
 {
 	if (_pipeRead != -1)
-		close(_pipeRead);
+		close(_pipeRead); // TODO: remove event from poll list
 	if (_pipeWrite != -1)
-		close(_pipeWrite);	
+		close(_pipeWrite); // TODO: remove event from poll list
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) // TODO: does the waitpid work?? gotta test
 		kill(_forkPid, SIGKILL);
 }

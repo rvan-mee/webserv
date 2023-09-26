@@ -35,7 +35,9 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 	_cgi(poll),
 	_bytesWritten(0),
 	_config(config),
-	_poll(poll)
+	_poll(poll),
+	_doneReading(false),
+	_pollHupSet(false)
 {
 	this->resetState();
 }
@@ -218,18 +220,35 @@ static bool	allRequestDataRead( t_requestData& requestData )
 	return (requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength);
 }
 
-static void	readFromSocket( int socketFd, t_requestData& requestData )
+void	ClientHandler::readFromSocket()
 {
-	std::vector<char>&	buffer = requestData.buffer;
+	std::vector<char>&	buffer = _requestData.buffer;
 	std::vector<char>	newRead(READ_SIZE);
 	ssize_t				bytesRead;
 
-	bytesRead = recv( socketFd, newRead.data(), READ_SIZE, 0 );
+	bytesRead = recv( _socketFd, newRead.data(), READ_SIZE, 0 );
 	if (bytesRead < 0)
 		throw ( std::runtime_error("Failed to read from socket") );
 
+	if (_pollHupSet && bytesRead == 0) {
+		_doneReading = true;
+		return ;
+	}
+
+	std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
+
 	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
-	requestData.totalBytesRead += bytesRead;
+	_requestData.totalBytesRead += bytesRead;
+}
+
+bool	ClientHandler::doneReading( void )
+{
+	return (_doneReading);
+}
+
+void	ClientHandler::setHup( void )
+{
+	_pollHupSet = true;
 }
 
 void	ClientHandler::resetState( void )
@@ -252,7 +271,7 @@ void	ClientHandler::handleRead( int fd )
 		return ;
 	}
 	
-	readFromSocket(_socketFd, _requestData);
+	this->readFromSocket();
 
 	// if all of the data we expect has not been read yet we add another event filter
 	// and wait more more data to be available for reading
@@ -267,7 +286,7 @@ void	ClientHandler::handleRead( int fd )
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("_"));
-	std::cout << "Response: " << _response << std::endl;
+	// std::cout << "Response: " << _response << std::endl;
 	_poll.addEvent(_socketFd, POLLOUT);
 }
 

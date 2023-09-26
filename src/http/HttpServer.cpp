@@ -69,6 +69,16 @@ bool	HttpServer::isServerSocket( int fd )
 	return ( false );
 }
 
+void HttpServer::removeClient(int eventIndex, int eventFd)
+{
+	std::cout << RED "Closing client connection" RESET << std::endl;
+	delete _eventList[eventIndex];
+	_eventList.erase(_eventList.begin() + eventIndex);
+	_poll.removeEvent(eventFd, POLLIN | POLLRDHUP);
+	_poll.removeEvent(eventFd, POLLOUT);
+	close(eventFd);
+}
+
 /**
  * @brief Setup the HTTP server
  * @param config The config object containing all the server information
@@ -101,18 +111,24 @@ void	HttpServer::initServer( Config &config )
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
+		std::cout << "List before poll: " << std::endl;
+		_poll.printList();
+
 		ready = poll(events, numEvents, -1);
 		if (ready < 0) {
 			closeServerSockets();
 			throw ( std::runtime_error( "Failed to wait for events" ) );
 		}
 
+
+		std::cout << "Ready: " << ready << std::endl;
+
 		// _poll.printList();
 		for (size_t i = 0; i < numEvents; i++) {
 			// This event does not contain an fd that is ready
 			if (events[i].revents == 0)
 				continue ;
-			
+
 			int eventFd = events[i].fd;
 
 			if ( this->isServerSocket(eventFd) )
@@ -124,7 +140,7 @@ void	HttpServer::initServer( Config &config )
 				}
 
 				/* Add the client socket to the poll list */
-				_poll.addEvent(clientSocket, POLLIN);
+				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
 				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
 				_eventList.push_back(newEvent);
@@ -140,18 +156,21 @@ void	HttpServer::initServer( Config &config )
 			try {
 				/* If the client had disconnected, close the connection */
 				if ( events[i].revents & POLLHUP ) { // TODO: still need to watch out that it is not a pipe closure?
-					std::cout << RED "Closing client connection" RESET << std::endl;
-					delete _eventList[eventIndex];
-					_eventList.erase(_eventList.begin() + eventIndex);
-					_poll.removeEvent(eventFd, POLLIN);
-					_poll.removeEvent(eventFd, POLLOUT);
-					close(eventFd);
+					this->removeClient(eventIndex, eventFd);
 				}
-				else if ( events[i].revents & POLLIN ) {
+				if ( events[i].revents & POLLERR ) {
+					std::cout << "POLLERR CAUGHT" << std::endl;
+				}
+				if ( events[i].revents & POLLIN ) {
 					std::cout << GREEN "Handling read event" RESET << std::endl;
+					if (events[i].revents & POLLRDHUP)
+						_eventList[eventIndex]->setHup();
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
-				else if ( events[i].revents & POLLOUT ) {
+				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneReading()) {
+					this->removeClient(eventIndex, eventFd);
+				}
+				if ( events[i].revents & POLLOUT ) {
 					std::cout << BLUE "Handling write event" RESET << std::endl;
 					_eventList[eventIndex]->handleWrite(eventFd);
 				}

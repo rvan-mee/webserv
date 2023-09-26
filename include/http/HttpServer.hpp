@@ -29,7 +29,8 @@ class HttpServer
 	std::vector<ClientHandler *>	_eventList;
 	EventPoll						_poll;
 
-	int getEventIndex(int fd);
+	int		getEventIndex(int fd);
+	void	removeClient(int eventIndex, int eventFd);
 
   public:
 	/******************************

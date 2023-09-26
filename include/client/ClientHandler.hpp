@@ -36,6 +36,8 @@ class ClientHandler
 	private:
 		ClientHandler( void );
 
+		void readFromSocket( void );
+
 		int					_socketFd;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
@@ -43,15 +45,19 @@ class ClientHandler
 		int					_bytesWritten;
 		Config&				_config;
 		EventPoll&			_poll;
+		bool				_doneReading;
+		bool				_pollHupSet;
 
 	public:
 		ClientHandler( int socketFd, EventPoll& poll, Config& config );
 		~ClientHandler();
 
+		bool	doneReading( void );
 		bool	isEvent( int fd );
 		void	handleRead( int fd );
 		void	handleWrite( int fd );
 		void	resetState( void );
+		void	setHup( void );
 };
 
 #endif

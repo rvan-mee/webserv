@@ -35,7 +35,7 @@ void	EventPoll::addEvent(int fd, int eventType)
 	newEvent.fd = fd;
 	newEvent.events = eventType;
 	newEvent.revents = 0;
-	_addList.push_back(newEvent);
+	_addQueue.push_back(newEvent);
 }
 
 
@@ -45,7 +45,7 @@ void	EventPoll::removeEvent(int fd, int eventType)
 
 	tmp.fd = fd;
 	tmp.eventType = eventType;
-	_removeList.push_back(tmp);
+	_removeQueue.push_back(tmp);
 }
 
 static void	eraseFromList(std::vector<pollfd>& list, t_fdToRemove fdToErase)
@@ -66,19 +66,39 @@ static void	eraseFromList(std::vector<pollfd>& list, t_fdToRemove fdToErase)
 
 void	EventPoll::printList( void )
 {
-	char	*events[] = {
-		[0] = "NO EVENT SET",
-		[POLLIN] = "READ",
-		[POLLOUT] = "WRITE",
-		[POLLHUP] = "HANGUP"
-	};
+	std::string	events;
+	std::string	revents;
 
 	for (size_t i = 0; i < _pollFds.size(); i++) {
-		std::cout << "Event node: " << i << std::endl;
-		std::cout << "fd:" << _pollFds[i].fd << std::endl;
-		std::cout << "Events:" << events[_pollFds[i].events] << std::endl;
-		std::cout << "Revents: " << _pollFds[i].revents << std::endl;
-		std::cout << "Revents:" << events[_pollFds[i].revents] << std::endl;
+		int	eventNum = _pollFds[i].events;
+		int	reventNum = _pollFds[i].revents;
+
+		if (eventNum == 0)
+			events = "No event";
+		if (eventNum & POLLIN)
+			events += "POLLIN ";
+		if (eventNum & POLLRDHUP)
+			events += "POLLRDHUP";
+		if (eventNum & POLLOUT)
+			events += "POLLOUT";
+
+		if (reventNum == 0)
+			revents = "No revent";
+		if (reventNum & POLLHUP)
+			revents += "POLLHUP ";
+		if (reventNum & POLLIN)
+			revents += "POLLIN ";
+		if (reventNum & POLLRDHUP)
+			revents += "POLLRDHUP";
+		if (reventNum & POLLOUT)
+			revents += "POLLOUT";
+
+		std::cout << "Event index: " << i << std::endl;
+		std::cout << "fd: " << _pollFds[i].fd << std::endl;
+		std::cout << "Events: " << events << std::endl;
+		std::cout << "Revents: " << revents << std::endl;
+		events.clear();
+		revents.clear();
 		std::cout << std::endl;
 	}
 	
@@ -87,16 +107,16 @@ void	EventPoll::printList( void )
 void	EventPoll::updateEventList( void )
 {
 	// remove every fd from the removal list
-	while (_removeList.size() != 0) {
-		t_fdToRemove	fdToRemove = _removeList.back();
+	while (_removeQueue.size() != 0) {
+		t_fdToRemove	fdToRemove = _removeQueue.back();
 
-		_removeList.pop_back();
+		_removeQueue.pop_back();
 		eraseFromList(_pollFds, fdToRemove);
 	}
 
 	// add every fd from the addition list
-	while (_addList.size() != 0) {
-		_pollFds.push_back(_addList.back());
-		_addList.pop_back();
+	while (_addQueue.size() != 0) {
+		_pollFds.push_back(_addQueue.back());
+		_addQueue.pop_back();
 	}
 }

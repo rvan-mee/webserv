@@ -48,7 +48,6 @@ void	 HttpResponse::setMessageBody( Server server )
 {
 	std::map<std::string, int>::iterator it;
 	std::string errorPage = server.getErrorPage(_status_code);
-	std::cout << "errorPage: " << errorPage << std::endl;
 	if (errorPage.empty() && _status_code != 200)
 	{
 		std::ifstream error("default_error.html"); //taking file as inputstream
