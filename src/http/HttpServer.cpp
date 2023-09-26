@@ -111,8 +111,8 @@ void	HttpServer::initServer( Config &config )
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
-		std::cout << "List before poll: " << std::endl;
-		_poll.printList();
+		// std::cout << "List before poll: " << std::endl;
+		// _poll.printList();
 
 		ready = poll(events, numEvents, -1);
 		if (ready < 0) {
