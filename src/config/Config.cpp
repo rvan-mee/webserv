@@ -389,3 +389,12 @@ unsigned long Config::getClientMaxBodySize( void ) const
 {
     return ( this->clientMaxBodySize );
 }
+
+/**
+ * @brief Returns the servers of the config.
+ * @return std::vector<Server> 
+ */
+std::vector<Server>&    Config::getAllServers( void )
+{
+    return (this->servers);
+}
