@@ -48,7 +48,6 @@ void	 HttpResponse::setMessageBody( Server server )
 {
 	std::map<std::string, int>::iterator it;
 	std::string errorPage = server.getErrorPage(_status_code);
-	std::cout << "errorPage: " << errorPage << std::endl;
 	if (errorPage.empty() && _status_code != 200)
 	{
 		std::ifstream error("default_error.html"); //taking file as inputstream
@@ -119,9 +118,11 @@ std::string HttpResponse::buildResponse( Server server)
 	str += "Content-Type: ";
 	str += _content_type;
 	if (!server.getServerNames()[0].empty())
-		str += "\r\nServer: " + server.getServerNames()[0];
+		str += "\r\nServer: " + server.getServerNames()[0] + "\r\n";
+	str += "Content-Length: ";
+	str += std::to_string(_message_body.size());
 	str += "\r\n\r\n";
-	str+= _message_body;
+	str += _message_body;
 	str += "\r\n";
 	return (str);
 }

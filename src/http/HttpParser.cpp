@@ -48,8 +48,8 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
         // store token string in the vector
         v.push_back(s);
     }
-    // if ((int)v.size() != 2)
-    //     throw ( std::runtime_error( "wrong header field" ) );
+    if ((int)v.size() < 2)
+        throw ( std::runtime_error( "wrong header field" ) );
     if (std::isspace(v[0].back()))
         return (response.setError(400, "Bad Request"));
     v[0].erase(std::remove(v[0].begin(), v[0].end(), ' '), v[0].end()); // remove whitespace
@@ -66,7 +66,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer, Server server)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -76,7 +76,7 @@ std::string    HttpRequest::parseRequestandGiveReponse(std::vector<char> buffer,
     bool emptyLineFound = false;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        std::cout << "line " << line;
+        // std::cout << "line " << line;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)

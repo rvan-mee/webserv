@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/26 13:10:22 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/21 17:02:23 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/25 14:52:55 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -367,7 +367,7 @@ Server &Config::getServer( std::string serverName )
  * @brief Get the root of the config.
  * @return std::string 
  */
-std::string Config::getRoot( void ) const
+std::string& Config::getRoot( void )
 {
     return ( this->root );
 }
@@ -376,7 +376,7 @@ std::string Config::getRoot( void ) const
  * @brief Returns the ports of the config.
  * @return std::vector<int> 
  */
-std::vector<int> Config::getListen( void ) const
+std::vector<int>& Config::getListen( void )
 {
     return ( this->listen );
 }

@@ -1,49 +1,63 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   EventHandler.hpp                                   :+:    :+:            */
+/*   ClientHandler.hpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 13:20:05 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/11 10:44:39 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/08/25 16:31:18 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef EVENTHANDLER_HPP
-# define EVENTHANDLER_HPP
+#ifndef CLIENTHANDLER_HPP
+# define CLIENTHANDLER_HPP
 
-# include <Config.hpp>
-# include <CgiHandler.hpp>
+#include <EventPoll.hpp>
+#include <CgiHandler.hpp>
+#include <Config.hpp>
+#include <string>
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
+	std::vector<char>	chunkedBuffer;
+	int					chunkSize;
+	bool				movedHeaders;
 	bool				readHeaders;
 	bool				contentLengthSet;
+	bool				chunkedEncoded;
 	int					headerSize;
 	int					contentLength;
 	int					totalBytesRead;
 }	t_requestData;
 
-class EventHandler
+class ClientHandler
 {
 	private:
-		EventHandler( void );
+		ClientHandler( void );
 
-		int					_kqueueFd;
+		void readFromSocket( void );
+
 		int					_socketFd;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
-		std::vector<char>	_socketWriteBuffer;
+		std::string			_response;
 		int					_bytesWritten;
+		Config&				_config;
+		EventPoll&			_poll;
+		bool				_doneReading;
+		bool				_pollHupSet;
 
 	public:
-		EventHandler( int socketFd, int kqueueFd );
-		~EventHandler();
+		ClientHandler( int socketFd, EventPoll& poll, Config& config );
+		~ClientHandler();
 
+		bool	doneReading( void );
 		bool	isEvent( int fd );
-		void	handleRead( int fd, Config &config );
+		void	handleRead( int fd );
 		void	handleWrite( int fd );
+		void	resetState( void );
+		void	setHup( void );
 };
 
 #endif

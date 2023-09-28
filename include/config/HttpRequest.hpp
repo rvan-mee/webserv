@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/21 12:00:38 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/25 15:09:46 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,18 +28,19 @@
 class HttpRequest
 {
 	public:
-		enum requestType { GET, POST, DELETE };
-		std::string    parseRequestandGiveReponse(std::vector<char> buffer, Server server);
-		void	isRequestLine(std::string line, HttpResponse &response);
-		void	isHeader(std::string line, HttpResponse &response);
-		requestType	getMethod();
-		void	setMethod(requestType method);
-		void	setURI(std::string target);
-		void	setContentType(std::string contentType);
-		void	setHost(std::string host);
-		void    addLineToBody(std::string line);
-		void    printAll();
-		void    parseCgiRequest(HttpResponse &response);
+		enum requestType	{ GET, POST, DELETE };
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server);
+		void				isRequestLine(std::string line, HttpResponse &response);
+		void				isHeader(std::string line, HttpResponse &response);
+		requestType			getMethod();
+		void				setMethod(requestType method);
+		void				setURI(std::string target);
+		void				setContentType(std::string contentType);
+		void				setHost(std::string host);
+		void				addLineToBody(std::string line);
+		void				printAll();
+		void				parseCgiRequest(HttpResponse &response);
+
 	private:
 		requestType	_request_method;
 		std::string _request_URI;

@@ -6,23 +6,24 @@
 /*   By: rvan-mee <rvan-mee@student.codam.nl>         +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/08/21 14:48:22 by rvan-mee      #+#    #+#                 */
-/*   Updated: 2023/09/25 15:21:51 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/25 15:05:39 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <CgiHandler.hpp>
 #include <unistd.h>
 #include <signal.h>
-#include <KqueueUtils.hpp>
 #include <iostream>
 #include <vector>
-#include <sys/event.h>
+// #include <sys/event.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
 
-CgiHandler::CgiHandler( int kqueueFd ) :
-	_kqueueFd(kqueueFd),
+CgiHandler::CgiHandler( EventPoll& poll ) :
+	_poll(poll),
 	_pipeRead(-1),
 	_pipeWrite(-1),
 	_bytesRead(0),
@@ -35,9 +36,9 @@ CgiHandler::CgiHandler( int kqueueFd ) :
 CgiHandler::~CgiHandler()
 {
 	if (_pipeRead != -1)
-		close(_pipeRead);
+		close(_pipeRead); // TODO: remove event from poll list
 	if (_pipeWrite != -1)
-		close(_pipeWrite);	
+		close(_pipeWrite); // TODO: remove event from poll list
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) // TODO: does the waitpid work?? gotta test
 		kill(_forkPid, SIGKILL);
 }
@@ -93,10 +94,10 @@ void	CgiHandler::handleWrite( void )
 
 	if (_cgiInput.size() == 0) {
 		// wrote everything to pipe
-		addKqueueEventFilter( _kqueueFd, _pipeRead, EVFILT_READ );
+		_poll.addEvent(_pipeRead, POLLIN);
 		return ;
 	}
-	addKqueueEventFilter( _kqueueFd, _pipeWrite, EVFILT_WRITE );
+	_poll.addEvent(_pipeWrite, POLLOUT);
 }
 
 /**
@@ -158,7 +159,7 @@ void	CgiHandler::startPythonCgi( void )
 		// Setup pipes in parent process
 		this->parentInitPipes( pipeToCgi, pipeFromCgi );
 
-		addKqueueEventFilter( _kqueueFd, _pipeWrite, EVFILT_WRITE );
+		_poll.addEvent(_pipeWrite, POLLOUT);
 	}
 }
 

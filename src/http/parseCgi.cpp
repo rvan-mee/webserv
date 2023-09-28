@@ -13,7 +13,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response)
         std::string result = _request_URI.substr(slashPos + 1, dotPyPos - slashPos - 1);
 
         std::cout << "Result: " << result << std::endl; 
-        std::ifstream file("/Users/dkramer/WEBSERVfolder/cgi-bin/" + result + ".py");
+        std::ifstream file("/home/dkramer/Documents/WEBSERVfolder/cgi-bin/" + result + ".py");
 
         // Check if the file is open
         if (file.is_open()) {

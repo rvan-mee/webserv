@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/07/27 10:17:28 by cpost         #+#    #+#                 */
-/*   Updated: 2023/08/25 10:45:26 by dkramer       ########   odam.nl         */
+/*   Updated: 2023/09/25 15:04:21 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,20 +16,21 @@
 # define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
 
 # include <Config.hpp>
-# include <EventHandler.hpp>
+# include <ClientHandler.hpp>
+# include <EventPoll.hpp>
 # include <netinet/in.h> // sockaddr_in
-# include <sys/event.h>  // kqueue
+// # include <sys/event.h>  // kqueue
 
 class HttpServer
 {
   private:
-	int _serverSocket;
-	sockaddr_in _address;
-	int _kqueueFd;
-	struct kevent _event[MAX_CONNECTIONS + 1];
-	std::vector<EventHandler *> _eventList;
+	std::vector<int>				_serverSockets;
+	std::vector<int>				_ports;
+	std::vector<ClientHandler *>	_eventList;
+	EventPoll						_poll;
 
-	int getEventIndex(int fd);
+	int		getEventIndex(int fd);
+	void	removeClient(int eventIndex, int eventFd);
 
   public:
 	/******************************
@@ -43,11 +44,15 @@ class HttpServer
 	* Server init
 	*****************************/
 
-	void initServer(Config &config);
-	void createSocket(void);
-	void bindSocket(Config &config);
-	void setKqueue(void);
-	void parseRequest(std::vector<char> buffer);
+	bool	isServerSocket( int fd );
+	void	initServer(Config &config);
+	void	createSockets(void);
+	void	bindSockets(void);
+	void	listenToSockets(void);
+	void	pollSockets(void);
+	void	parseRequest(std::vector<char> buffer);
+	void	closeServerSockets( void );
+	void	setPorts( Config &config );
 };
 
 #endif
