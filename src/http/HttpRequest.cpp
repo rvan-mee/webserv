@@ -1,4 +1,5 @@
 #include <HttpRequest.hpp>
+#include <poll.h>
 
 HttpRequest::requestType	HttpRequest::getMethod()
 {

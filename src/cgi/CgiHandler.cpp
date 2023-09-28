@@ -67,12 +67,16 @@ void	CgiHandler::handleRead( void )
 
 	_bytesRead += currentBytesRead;
 	int i = 0;
+	std::cout << _cgiOutput.size() << std::endl;
 	while (i < _cgiOutput.size())
 	{
 		std::cout << _cgiOutput[i] << std::endl;
+		i++;
 	}
 	// if
 	// TODO: check for EOF
+	// throw ( std::runtime_error("Failed to read from the CGI") );
+
 	// get output into _socketBuffer from EventHandler?
 	// _cgiOutput.shrink_to_fit();
 	// else 
@@ -115,13 +119,14 @@ void	CgiHandler::handleWrite( void )
  * |        |  pipeFromCgi  |       |
  * |________|  <---------<  |_______|            
  */
-void	CgiHandler::startPythonCgi( void )
+void	CgiHandler::startPythonCgi( std::string script )
 {
 	int pipeToCgi[2];
 	int pipeFromCgi[2];
 	
 	// temp
-	char *args[] = { "python", "/Users/cpost/Desktop/webserv/src/test.py", NULL };
+	char *args[] = { "python", const_cast<char*>(script.c_str()), NULL };
+
 	
 	// Init pipes. Throws runtime_error on failure.
 	if ( pipe( pipeToCgi ) == -1)

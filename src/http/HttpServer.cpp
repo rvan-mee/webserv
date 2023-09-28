@@ -165,7 +165,7 @@ void	HttpServer::initServer( Config &config )
 					std::cout << GREEN "Handling read event" RESET << std::endl;
 					if (events[i].revents & POLLRDHUP)
 						_eventList[eventIndex]->setHup();
-					_eventList[eventIndex]->handleRead(eventFd);
+					_eventList[eventIndex]->handleRead(eventFd, _poll);
 				}
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneReading()) {
 					this->removeClient(eventIndex, eventFd);

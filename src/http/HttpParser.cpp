@@ -2,7 +2,7 @@
 #include <HttpResponse.hpp>
 #include <Server.hpp>
 #include <sys/stat.h>
-
+#include <poll.h>
 
 bool pathExists(const std::string& path) {
     struct stat info;
@@ -90,7 +90,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server, EventPoll& poll)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -114,7 +114,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     // printAll();
     if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py")
     {
-        parseCgiRequest(response);
+        parseCgiRequest(response, server, poll);
     }
     return (response.buildResponse(server));
 }

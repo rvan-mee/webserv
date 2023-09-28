@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <HttpResponse.hpp>
 #include <cstring>
+#include <EventPoll.hpp>
 /**
  * @brief HtppRequest class to parse the request and store the data in the class variables
  * 
@@ -29,7 +30,7 @@ class HttpRequest
 {
 	public:
 		enum requestType	{ GET, POST, DELETE };
-		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server);
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server, EventPoll& poll );
 		void				isRequestLine(std::string line, HttpResponse &response, Server server);
 		void				isHeader(std::string line, HttpResponse &response);
 		requestType			getMethod();
@@ -39,7 +40,7 @@ class HttpRequest
 		void				setHost(std::string host);
 		void				addLineToBody(std::string line);
 		void				printAll();
-		void				parseCgiRequest(HttpResponse &response);
+		void				parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll);
 
 	private:
 		requestType	_request_method;
