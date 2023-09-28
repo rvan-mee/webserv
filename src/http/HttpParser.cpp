@@ -1,13 +1,28 @@
 #include <HttpRequest.hpp>
 #include <HttpResponse.hpp>
 #include <Server.hpp>
+#include <sys/stat.h>
+
+
+bool pathExists(const std::string& path) {
+    struct stat info;
+    return stat(path.c_str(), &info) == 0;
+}
+
+bool isDirectory(const std::string& path) {
+    struct stat info;
+    if (stat(path.c_str(), &info) != 0) {
+        return false; // Path does not exist
+    }
+    return (info.st_mode & S_IFDIR) != 0; // Check if it's a directory
+}
 
 /**
  * @brief Check if request line has the right syntax and save the method & URI
  * 
  * @param line  request line
  */
-void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
+void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Server server)
 {
     std::string s;
     std::stringstream ss(line);
@@ -28,6 +43,15 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
         return (response.setError(501, "Not Implemented"));
     if (v[1].empty())
         return (response.setError(400, "Bad Request"));
+    std::cout << server.getRoot() + v[1] << std::endl;
+    if (pathExists(server.getRoot() + v[1])) {
+        if (v[1] != "/" && isDirectory(server.getRoot() + v[1]))
+            if (server.getAutoindex() == false)
+                return (response.setError(403, "Forbidden"));
+    } else {
+        // Handle non-existent path
+        // return (response.setError(400, "Bad Request"));
+    }
     setURI(v[1]);
     v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
     if (v[2] != "HTTP/1.1")
@@ -74,11 +98,12 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     std::string line;
     HttpResponse response;
     bool emptyLineFound = false;
+	std::cout << "Request:" << std::endl;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        // std::cout << "line " << line;
+        std::cout << line << std::endl;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
-            isRequestLine(line, response);
+            isRequestLine(line, response, server);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line

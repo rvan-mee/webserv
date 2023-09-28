@@ -1,7 +1,7 @@
 
 NAME				:=	webserv
 PYTHON_PATH 		:= $(shell which python)
-CFLAGS              :=  -Wall -Wextra -std=c++11 -pedantic -DPYTHON_PATH=\"$(PYTHON_PATH)\"
+CFLAGS              :=  -Wall -Wextra -pedantic -DPYTHON_PATH=\"$(PYTHON_PATH)\" #-std=c++11
 # CFLAGS              +=  -fsanitize=address -g
 CC					:=	c++
 
