@@ -6,7 +6,7 @@
 /*   By: cpost <cpost@student.codam.nl>               +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/06/23 11:25:45 by cpost         #+#    #+#                 */
-/*   Updated: 2023/09/21 16:34:41 by cpost         ########   odam.nl         */
+/*   Updated: 2023/09/25 15:10:52 by rvan-mee      ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,8 +96,9 @@ class Config
 		 *****************************/
 
 		Server				&getServer( std::string serverName );
-		std::string			getRoot( void ) const;
-		std::vector<int>	getListen( void ) const;
+		std::vector<Server>	&getAllServers( void );
+		std::string			&getRoot( void );
+		std::vector<int>	&getListen( void );
 		unsigned long		getClientMaxBodySize( void ) const;
 
 };
