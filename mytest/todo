@@ -10,7 +10,6 @@
 - default error pages @done
 - create 301 redirect based on config
 - Default file if request is a directory
-- Add file saving directory (from the config) if a file gets uploaded
 Left to do:
 - Python scripts fixen
 - know which server you are on

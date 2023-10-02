@@ -46,6 +46,7 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
 
 void HttpResponse::buildBodyDirectory(std::string directoryPath)
 {
+	//users must be able to input any file
 	std::cout << "buildBodyDirectory" << std::endl;
 	std::cout << "directoryPath: " << directoryPath << std::endl;
 }
@@ -60,6 +61,7 @@ void HttpResponse::setBodyHtml(std::string pathHtmlPage)
 {
 	std::cout << "setBodyHtml" << std::endl;
 	std::cout << "pathHtmlPage: " << pathHtmlPage << std::endl;
+
 }
 
 void	 HttpResponse::setMessageBody( Server server )
