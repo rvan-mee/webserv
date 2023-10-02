@@ -183,13 +183,24 @@ void	HttpServer::initServer( Config &config )
 
 void	HttpServer::setPorts( Config &config )
 {
-	std::vector<int>&	allPorts = config.getListen();
+	std::vector<Server>&	allServers = config.getAllServers();
+	std::vector<int>&		allPorts = config.getListen();
 
 	for (size_t i = 0; i < allPorts.size(); i++) {
 		// if the port has not been set in _ports add it to the vector
 		if (std::find(_ports.begin(), _ports.end(), allPorts[i]) == _ports.end())
 			_ports.push_back(allPorts[i]);
-	}	
+	}
+
+	for (size_t i = 0; i < allServers.size(); i++) {
+		std::vector<int>	serverPorts = allServers[i].getListen();
+		
+		for (size_t j = 0; j < serverPorts.size(); j++) {
+			// if the port has not been set in _ports add it to the vector
+			if (std::find(_ports.begin(), _ports.end(), serverPorts[j]) == _ports.end())
+				_ports.push_back(serverPorts[j]);
+		}
+	}
 }
 
 int	HttpServer::getEventIndex( int fd )

@@ -96,6 +96,7 @@ class Config
 		 *****************************/
 
 		Server				&getServer( std::string serverName );
+		std::vector<Server>	&getAllServers( void );
 		std::string			&getRoot( void );
 		std::vector<int>	&getListen( void );
 		unsigned long		getClientMaxBodySize( void ) const;
