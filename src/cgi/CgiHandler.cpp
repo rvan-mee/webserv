@@ -139,7 +139,10 @@ void	CgiHandler::startPythonCgi( std::string script )
 	}
 		
 	// Fork process. Throws runtime_error on failure.
+
 	this->_forkPid = fork();
+	std::cout << "Forkpid: " << this->_forkPid << " " << errno << std::endl;
+
 	if ( this->_forkPid == -1 )
 	{
 		close( pipeToCgi[0] );
@@ -156,6 +159,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 
 		// Execute the CGI script
     	char *env[] = { NULL };
+		std::cerr << "Entering xecve" << std::endl;
 		execve( PYTHON_PATH, args, env );
 		std::cerr << "Error executing Python script" << std::endl;
 		exit( 1 ) ;
@@ -176,17 +180,19 @@ void	CgiHandler::startPythonCgi( std::string script )
  */
 void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
 {
+
 	// close unused pipe ends
 	close( pipeToCgi[1] ); // Close write end of pipeToCgi
 	close( pipeFromCgi[0] ); // Close read end of pipeFromCgi
-
+	std::cout << "Child process 1" << std::endl;
 	// Redirect stdin and stdout to the pipes
     dup2( pipeToCgi[0], STDIN_FILENO ); // Redirect pipeToCgi to stdin
     dup2( pipeFromCgi[1], STDOUT_FILENO ); // Redirect pipeFromCgi to stdout
-
+	std::cout << "Child process 2" << std::endl;
 	// Close the remaining pipe ends that are not used
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
+	std::cout << "Child process 3" << std::endl;
 }
 
 /**
@@ -196,6 +202,7 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
  */
 void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 {
+	std::cout << "Parent process" << std::endl;
 	// close unused pipe ends
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
