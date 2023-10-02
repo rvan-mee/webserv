@@ -151,6 +151,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 	else if ( this->_forkPid == 0 ) // Child process
 	{
 		// Setup pipes in child process
+		std::cout << "Executing Python script" << std::endl;
 		this->childInitPipes( pipeToCgi, pipeFromCgi );
 
 		// Execute the CGI script

@@ -17,6 +17,19 @@ bool isDirectory(const std::string& path) {
     return (info.st_mode & S_IFDIR) != 0; // Check if it's a directory
 }
 
+
+void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
+{
+    //GET /favicon.ico HTTP/1.1
+    if (_request_uri != "/" && isDirectory(server.getRoot() + v[1])) {
+        if (server.getAutoindex() == false)
+                return (response.setError(403, "Forbidden"));
+            else
+                return (response.buildBodyDirectory());
+    }
+    if (_request_uri.find("/uploads/") != std::string::npos)
+        return (response.buildBodyFile(uri.substr(uri.find_last_of('/') + 1)));
+
 /**
  * @brief Check if request line has the right syntax and save the method & URI
  * 
@@ -43,16 +56,14 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Serve
         return (response.setError(501, "Not Implemented"));
     if (v[1].empty())
         return (response.setError(400, "Bad Request"));
+    setURI(v[1]);
     std::cout << server.getRoot() + v[1] << std::endl;
-    if (pathExists(server.getRoot() + v[1])) {
-        if (v[1] != "/" && isDirectory(server.getRoot() + v[1]))
-            if (server.getAutoindex() == false)
-                return (response.setError(403, "Forbidden"));
-    } else {
+    if (_request_method == GET && pathExists(server.getRoot() + v[1])) {
+        parseGetRequest(response, server);
+    } else if (_request_method == GET) {
         // Handle non-existent path
         // return (response.setError(400, "Bad Request"));
     }
-    setURI(v[1]);
     v[2].erase(std::remove(v[2].begin(), v[2].end(), '\r'), v[2].end());
     if (v[2] != "HTTP/1.1")
         return (response.setError(505, "HTTP Version Not Supported"));
@@ -116,5 +127,9 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     {
         parseCgiRequest(response, server, poll);
     }
+    //     return (response.buildResponse(server));
+    // else if (_request_method == POST)
+    //     return (response.buildResponse(server));
+    // else if (_request_method == DELETE)
     return (response.buildResponse(server));
 }

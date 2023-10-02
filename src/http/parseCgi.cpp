@@ -23,8 +23,17 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, EventPo
             std::cout << "File exists." << std::endl;
             CgiHandler cgiHandler = CgiHandler( poll );
             // You can now read or manipulate the file here if needed.
+            try {
             cgiHandler.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+            std::cout << "file excecuted" << std::endl;
+            }
+            catch (std::exception &e)
+    {
+        std::cout << "here" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
             file.close(); // Don't forget to close the file when you're done with it.
+            return ;
         } else {
             return (response.setError(404, "The requested resource was not found"));
         }

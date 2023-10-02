@@ -121,7 +121,7 @@ void	HttpServer::initServer( Config &config )
 		}
 
 
-		std::cout << "Ready: " << ready << std::endl;
+		// std::cout << "Ready: " << ready << std::endl;
 
 		// _poll.printList();
 		for (size_t i = 0; i < numEvents; i++) {
@@ -178,6 +178,7 @@ void	HttpServer::initServer( Config &config )
 				std::cerr << e.what() << '\n';
 			}
 		}
+		// break;
 	}
 }
 
