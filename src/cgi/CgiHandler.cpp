@@ -66,13 +66,13 @@ void	CgiHandler::handleRead( void )
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
 	_bytesRead += currentBytesRead;
-	int i = 0;
-	std::cout << _cgiOutput.size() << std::endl;
-	while (i < _cgiOutput.size())
-	{
-		std::cout << _cgiOutput[i] << std::endl;
-		i++;
-	}
+	// int i = 0;
+	// std::cout << _cgiOutput.size() << std::endl;
+	// while (i < _cgiOutput.size())
+	// {
+	// 	std::cout << _cgiOutput[i] << std::endl;
+	// 	i++;
+	// }
 	// if
 	// TODO: check for EOF
 	// throw ( std::runtime_error("Failed to read from the CGI") );
@@ -140,10 +140,11 @@ void	CgiHandler::startPythonCgi( std::string script )
 		
 	// Fork process. Throws runtime_error on failure.
 
-	this->_forkPid = fork();
-	std::cout << "Forkpid: " << this->_forkPid << " " << errno << std::endl;
+	_forkPid = fork();
+	std::cout << "Forkpid: " << _forkPid << " " << errno << std::endl;
+	std::cout << "Python path: " << PYTHON_PATH << std::endl;
 
-	if ( this->_forkPid == -1 )
+	if ( _forkPid == -1 )
 	{
 		close( pipeToCgi[0] );
 		close( pipeToCgi[1] );
@@ -151,23 +152,24 @@ void	CgiHandler::startPythonCgi( std::string script )
 		close( pipeFromCgi[1] );
 		throw ( std::runtime_error( "Failed to fork process" ) );
 	}
-	else if ( this->_forkPid == 0 ) // Child process
+	else if ( _forkPid == 0 ) // Child process
 	{
 		// Setup pipes in child process
 		std::cout << "Executing Python script" << std::endl;
-		this->childInitPipes( pipeToCgi, pipeFromCgi );
+		childInitPipes( pipeToCgi, pipeFromCgi );
 
 		// Execute the CGI script
     	char *env[] = { NULL };
 		std::cerr << "Entering xecve" << std::endl;
 		execve( PYTHON_PATH, args, env );
+		std::cerr << "python path" << PYTHON_PATH << " args" << args << " errno" << errno << std::endl;
 		std::cerr << "Error executing Python script" << std::endl;
 		exit( 1 ) ;
 	}
 	else // Parent process
 	{
 		// Setup pipes in parent process
-		this->parentInitPipes( pipeToCgi, pipeFromCgi );
+		parentInitPipes( pipeToCgi, pipeFromCgi );
 
 		_poll.addEvent(_pipeWrite, POLLOUT);
 	}
@@ -188,11 +190,11 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
 	// Redirect stdin and stdout to the pipes
     dup2( pipeToCgi[0], STDIN_FILENO ); // Redirect pipeToCgi to stdin
     dup2( pipeFromCgi[1], STDOUT_FILENO ); // Redirect pipeFromCgi to stdout
-	std::cout << "Child process 2" << std::endl;
+	std::cerr << "Child process 2" << std::endl;
 	// Close the remaining pipe ends that are not used
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
-	std::cout << "Child process 3" << std::endl;
+	std::cerr << "Child process 3" << std::endl;
 }
 
 /**
@@ -208,6 +210,6 @@ void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
 
 	// Set the pipe ends to the class variables
-	this->_pipeWrite = pipeToCgi[1]; // Write end of pipeToCgi. Send data to CGI script.
-	this->_pipeRead = pipeFromCgi[0]; // Read end of pipeFromCgi. Receive data from CGI script.
+	_pipeWrite = pipeToCgi[1]; // Write end of pipeToCgi. Send data to CGI script.
+	_pipeRead = pipeFromCgi[0]; // Read end of pipeFromCgi. Receive data from CGI script.
 }

@@ -41,6 +41,7 @@ class HttpRequest
 		void				addLineToBody(std::string line);
 		void				printAll();
 		void				parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll);
+		void				parseGetRequest(HttpResponse &response, Server server);
 
 	private:
 		requestType	_request_method;

@@ -286,8 +286,8 @@ void	ClientHandler::handleRead( int fd, EventPoll& poll )
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
 	_response = server.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("_"), poll);
-	std::cout << "Response: " << std::endl;
-	std::cout << _response << std::endl;
+	// std::cout << "Response: " << std::endl;
+	// std::cout << _response << std::endl;
 	_poll.addEvent(_socketFd, POLLOUT);
 }
 

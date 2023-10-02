@@ -44,6 +44,24 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
+void HttpResponse::buildBodyDirectory(std::string directoryPath)
+{
+	std::cout << "buildBodyDirectory" << std::endl;
+	std::cout << "directoryPath: " << directoryPath << std::endl;
+}
+
+void HttpResponse::buildBodyFile(std::string requestedFile)
+{
+	std::cout << "buildBodyFile" << std::endl;
+	std::cout << "requestedFile: " << requestedFile << std::endl;
+}
+
+void HttpResponse::setBodyHtml(std::string pathHtmlPage)
+{
+	std::cout << "setBodyHtml" << std::endl;
+	std::cout << "pathHtmlPage: " << pathHtmlPage << std::endl;
+}
+
 void	 HttpResponse::setMessageBody( Server server )
 {
 	std::map<std::string, int>::iterator it;
