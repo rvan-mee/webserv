@@ -20,6 +20,9 @@ bool isDirectory(const std::string& path) {
 
 void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 {
+    std::cout << "request_URI: " << _request_URI << std::endl;
+    if (server.getLocation(_request_URI).getAllowGet() == false)
+        return (response.setError(405, "Method Not Allowed"));
     //GET /favicon.ico HTTP/1.1
     if (_request_URI != "/" && isDirectory(server.getRoot() + _request_URI)) {
         if (server.getAutoindex() == false)
@@ -33,6 +36,15 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
         return (response.setBodyHtml(server.getRoot() + _request_URI));
 }
 
+// void		HttpRequest::parsePostRequest(HttpResponse &response, Server server)
+// {
+
+// }
+
+// void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
+// {
+    
+// }
 /**
  * @brief Check if request line has the right syntax and save the method & URI
  * 
@@ -112,10 +124,10 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     std::string line;
     HttpResponse response;
     bool emptyLineFound = false;
-	// std::cout << "Request:" << std::endl;
+	std::cout << "Request:" << std::endl;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        // std::cout << line << std::endl;
+        std::cout << line << std::endl;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line, response, server);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
