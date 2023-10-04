@@ -21,14 +21,21 @@ bool isDirectory(const std::string& path) {
 void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 {
     std::cout << "request_URI: " << _request_URI << std::endl;
-    if (server.getLocation(_request_URI).getAllowGet() == false)
-        return (response.setError(405, "Method Not Allowed"));
+    try {
+        if (server.getLocation(_request_URI).getAllowGet() == false)
+        {
+            return (response.setError(405, "Method Not Allowed"));
+        }
+    }
+    catch (std::exception &e){
+    }
+
     //GET /favicon.ico HTTP/1.1
     if (_request_URI != "/" && isDirectory(server.getRoot() + _request_URI)) {
         if (server.getAutoindex() == false)
                 return (response.setError(403, "Forbidden"));
             else
-                return (response.buildBodyDirectory(server.getRoot() + _request_URI));
+                return (response.buildBodyDirectory(server.getRoot() + _request_URI, server));
     }
     else if (_request_URI.find(server.getUploadsDir()) != std::string::npos) //check if get request is file
         return (response.buildBodyFile(_request_URI.substr(_request_URI.find_last_of('/') + 1)));
@@ -36,15 +43,17 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
         return (response.setBodyHtml(server.getRoot() + _request_URI));
 }
 
-// void		HttpRequest::parsePostRequest(HttpResponse &response, Server server)
-// {
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server)
+{
+    if (server.getLocation(_request_URI).getAllowPost() == false)
+        return (response.setError(405, "Method Not Allowed"));
+}
 
-// }
-
-// void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
-// {
-    
-// }
+void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
+{
+    if (server.getLocation(_request_URI).getAllowDelete() == false)
+        return (response.setError(405, "Method Not Allowed"));
+}
 /**
  * @brief Check if request line has the right syntax and save the method & URI
  * 

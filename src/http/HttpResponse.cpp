@@ -1,5 +1,7 @@
 #include <HttpResponse.hpp>
 #include <Server.hpp>
+#include <dirent.h>
+#include <sys/stat.h>
 
 HttpResponse::HttpResponse()
 {
@@ -44,9 +46,80 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     return true;
 }
 
-void HttpResponse::buildBodyDirectory(std::string directoryPath)
+void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
 {
-	//users must be able to input any file
+	//users must be able to input any
+	if (!server.getIndex().empty())
+		std::cout << "index: " << server.getIndex()[0] << std::endl;
+	if (!server.getIndex().empty() && !server.getIndex()[0].empty())
+	{
+		//check if index file exists
+		std::ifstream index(server.getIndex()[0]); //taking file as inputstream
+		std::string e;
+		if (index.is_open())
+		{
+			std::ostringstream ss;
+			ss << index.rdbuf(); // reading data
+			e = ss.str();
+			_message_body = e;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+
+		}
+		//if it does, buildBodyFile(indexFile)
+		//else, buildBodyDirectory(directoryPath)
+	}
+	else
+	{
+		_message_body += "<html>\n<head><title>Index of " + directoryPath + "</title></head>\n";
+		_message_body += "<h1>Index of " + directoryPath + "</h1><hr>\n";
+
+		DIR *dir;
+		struct dirent *ent;
+		if ((dir = opendir (directoryPath.c_str())) == NULL)
+		{
+			std::cerr << "Can't open directory: " << directoryPath << std::endl;
+		}
+		_message_body += "<table><tr><th>Name</th><th>Last Modified</th><th>Size (bytes)</th></tr>";
+		while ((ent = readdir(dir)) != NULL)
+		{
+			if (std::string(ent->d_name) == ".")
+				continue ;
+
+			std::string filepath = directoryPath;
+			if(directoryPath.back()!= '/'){
+				filepath += '/';
+			}
+			filepath += ent->d_name;
+
+			//get directory/file information
+			struct stat buf; //struct to store file/directory data
+			stat(filepath.c_str(), &buf);
+		
+
+			_message_body += "<tr><td>";
+			_message_body += "<a href=\"";
+			_message_body += ent->d_name;
+			if (ent->d_type == DT_DIR)
+				_message_body += "/";
+			_message_body += "\">";
+			_message_body += ent->d_name;
+			if (ent->d_type == DT_DIR)
+				_message_body += "/";
+			_message_body += "</a></td><td>";
+			if (ent->d_type != DT_DIR)
+				_message_body += "</td><td align=\"right\">" + std::to_string(buf.st_size) + "</td>";
+			else
+				_message_body += "</td><td align=\"right\"> - </td>";
+			_message_body += '\n';
+		}
+		closedir(dir);	
+		_message_body += "</table></hr></body>\n</html>\n";
+		//buildBodyDirectory(directoryPath)
+	}
+
 	std::cout << "buildBodyDirectory" << std::endl;
 	std::cout << "directoryPath: " << directoryPath << std::endl;
 }
@@ -102,7 +175,7 @@ void	 HttpResponse::setMessageBody( Server server )
 			std::cout << "Error opening file";
 		}
 	}
-	else
+	else if (_message_body.empty())
 	{
 		std::ifstream f("src/http/index.html"); //taking file as inputstream
 		std::string s;
