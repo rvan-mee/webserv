@@ -37,11 +37,10 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
             else
                 return (response.buildBodyDirectory(server.getRoot() + _request_URI, server));
     }
-    else if (_request_URI.find(server.getUploadsDir()) != std::string::npos) //check if get request is file
-        return (response.buildBodyFile(_request_URI.substr(_request_URI.find_last_of('/') + 1)));
-    else
-        return (response.setBodyHtml(server.getRoot() + _request_URI));
+    else if (_request_URI != "/")
+        return (response.buildBodyFile(server.getRoot() + _request_URI));
 }
+
 
 void		HttpRequest::parsePostRequest(HttpResponse &response, Server server)
 {

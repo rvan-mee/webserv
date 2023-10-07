@@ -9,7 +9,7 @@
 - handle turn on or off directory listing for request @done
 - default error pages @done
 - create 301 redirect based on config
-- Default file if request is a directory
+- Default file if request is a directory @done
 Left to do:
 - Python scripts fixen
 - know which server you are on
