@@ -95,6 +95,8 @@ void	CgiHandler::handleWrite( void )
 		throw ( std::runtime_error("Failed to send response to client") );
 
 	_cgiInput.erase(_cgiInput.begin(), _cgiInput.begin() + bytesSent);
+	// _cgiInput.erase(0, bytesSent);
+
 
 	if (_cgiInput.size() == 0) {
 		// wrote everything to pipe
@@ -141,7 +143,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 	// Fork process. Throws runtime_error on failure.
 
 	_forkPid = fork();
-	std::cout << "Forkpid: " << _forkPid << " " << errno << std::endl;
+	std::cerr << "Forkpid: " << _forkPid << " " << errno << std::endl;
 	std::cout << "Python path: " << PYTHON_PATH << std::endl;
 
 	if ( _forkPid == -1 )
@@ -154,6 +156,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 	}
 	else if ( _forkPid == 0 ) // Child process
 	{
+		// sleep (20000);
 		// Setup pipes in child process
 		std::cout << "Executing Python script" << std::endl;
 		childInitPipes( pipeToCgi, pipeFromCgi );
@@ -164,6 +167,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 		execve( PYTHON_PATH, args, env );
 		std::cerr << "python path" << PYTHON_PATH << " args" << args << " errno" << errno << std::endl;
 		std::cerr << "Error executing Python script" << std::endl;
+		// return ;
 		exit( 1 ) ;
 	}
 	else // Parent process
@@ -172,6 +176,8 @@ void	CgiHandler::startPythonCgi( std::string script )
 		parentInitPipes( pipeToCgi, pipeFromCgi );
 
 		_poll.addEvent(_pipeWrite, POLLOUT);
+		// this->handleWrite();
+
 	}
 }
 
