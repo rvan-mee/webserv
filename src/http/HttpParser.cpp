@@ -3,6 +3,8 @@
 #include <Server.hpp>
 #include <sys/stat.h>
 #include <poll.h>
+#include <CgiHandler.hpp>
+#include <EventPoll.hpp>
 
 bool pathExists(const std::string& path) {
     struct stat info;
@@ -42,10 +44,26 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 }
 
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server)
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, EventPoll& poll)
 {
     if (server.getLocation(_request_URI).getAllowPost() == false)
         return (response.setError(405, "Method Not Allowed"));
+    //in case of file upload
+    if (_content_type == "multipart/form-data")
+    {
+        CgiHandler cgiHandler = CgiHandler( poll );
+        // You can now read or manipulate the file here if needed.
+        try {
+        cgiHandler.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+        std::cout << "file excecuted" << std::endl;
+        }
+        catch (std::exception &e) {
+        std::cout << "here" << std::endl;
+        std::cerr << e.what() << std::endl;
+        }
+        return ;
+    }
+    return (response.setError(415, "Unsupported Media Type"));
 }
 
 void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
@@ -58,7 +76,7 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
  * 
  * @param line  request line
  */
-void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Server server)
+void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Server server, EventPoll& poll)
 {
     std::string s;
     std::stringstream ss(line);
@@ -83,7 +101,14 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Serve
     std::cout << server.getRoot() + v[1] << std::endl;
     if (_request_method == GET && pathExists(server.getRoot() + v[1])) {
         parseGetRequest(response, server);
-    } else if (_request_method == GET) {
+    } 
+    else if (_request_method == POST) {
+        parsePostRequest(response, server, poll);
+    }
+    else if (_request_method == DELETE) {
+        parseDeleteRequest(response, server);
+    }
+    else {
         // Handle non-existent path
         return (response.setError(400, "Bad Request"));
     }
@@ -137,7 +162,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     {
         std::cout << line << std::endl;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
-            isRequestLine(line, response, server);
+            isRequestLine(line, response, server, poll);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line

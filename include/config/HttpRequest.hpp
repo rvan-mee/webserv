@@ -31,7 +31,7 @@ class HttpRequest
 	public:
 		enum requestType	{ GET, POST, DELETE };
 		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server, EventPoll& poll );
-		void				isRequestLine(std::string line, HttpResponse &response, Server server);
+		void				isRequestLine(std::string line, HttpResponse &response, Server server, EventPoll& poll);
 		void				isHeader(std::string line, HttpResponse &response);
 		requestType			getMethod();
 		void				setMethod(requestType method);
@@ -42,7 +42,7 @@ class HttpRequest
 		void				printAll();
 		void				parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll);
 		void				parseGetRequest(HttpResponse &response, Server server);
-		void				parsePostRequest(HttpResponse &response, Server server);
+		void				parsePostRequest(HttpResponse &response, Server server, EventPoll& poll);
 		void				parseDeleteRequest(HttpResponse &response, Server server);
 	private:
 		requestType	_request_method;
