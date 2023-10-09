@@ -156,6 +156,7 @@ std::map<std::string, std::string> mimeTypes = {
     {"jpg", "image/jpeg"},
     {"jpeg", "image/jpeg"},
     {"png", "image/png"},
+	{"css", "text/css"},
     // Add more mappings as needed
 };
 
