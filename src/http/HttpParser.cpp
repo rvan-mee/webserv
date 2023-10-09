@@ -32,9 +32,14 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     }
     catch (std::exception &e){
     }
-
+    if ( _request_URI == "/redirect" )
+    {
+        std::cout << "redirect" << std::endl;
+        response.setError( 301, "Moved Permanently" );
+        response.setRedirect( server.getLocation("/redirect").getRedirect() );
+    }
     //GET /favicon.ico HTTP/1.1
-    if (_request_URI != "/" && isDirectory(server.getRoot() + _request_URI)) {
+    else if (_request_URI != "/" && isDirectory(server.getRoot() + _request_URI)) {
         if (server.getAutoindex() == false)
                 return (response.setError(403, "Forbidden"));
             else
@@ -197,9 +202,5 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         // Handle non-existent path
         response.setError(404, "Not Found");
     }
-    //     return (response.buildResponse(server));
-    // else if (_request_method == POST)
-    //     return (response.buildResponse(server));
-    // else if (_request_method == DELETE)
     return (response.buildResponse(server));
 }

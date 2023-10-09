@@ -343,13 +343,14 @@ Location  &Server::getLocation( std::string locationUrl )
             }
         }
     }
-    while ( temp != "" )
+    for ( std::string temp = locationUrl; temp != ""; trimLocationUrl( temp ) )
     {
         for ( it = this->locations.begin(); it != this->locations.end(); it++ )
         {
             urls = it->getUrls();
             for ( it2 = urls.begin(); it2 != urls.end(); it2++ )
             {
+                std::cout << "it2 " << *it2 << std::endl; 
                 if ( *it2 == temp )
                     return ( *it );
             }

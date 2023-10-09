@@ -38,12 +38,13 @@ class HttpResponse
 	void 		buildBodyDirectory(std::string directoryPath, Server server);
 	void 		buildBodyFile(std::string requestedFile);
 	void 		setBodyHtml(std::string pathHtmlPage);
-
+	void		setRedirect( std::string redirect );
   private:
 	int			_status_code;
 	std::string	_reason_phrase;
 	std::string	_message_body;
 	std::string	_content_type;
+	std::string	_redirect;
 };
 
 #endif

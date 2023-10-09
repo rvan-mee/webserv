@@ -5,27 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-        }
-
-        p {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-
-        .image-container {
-            margin-top: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -36,47 +16,54 @@
 
         <p>Code 'n Twerk: Webserver Work</p>
 
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button>
-        <button type="button" class="buttonCustom" onclick="window.location.href='/redirect';">Redirect</button>
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">Big Image</button>
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">CGI Env</button>
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">Upload (POST)</button>
-        <button type="button" class="buttonCustom" onclick="window.location.href='#';">Upload (POST)</button>
+    <div class="flex-container">
+        <div class="functionbox">
+            <p class = "titlebox">Test 1:</br> Stress Test</p>
+            <p class ="textbox">Expected behaviour:</br>Server doesn't crash when it handles a big load of requests</p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+        </div>
 
-        <form method="post" action="/" enctype="multipart/form-data">
-            <div>
-              <label for="file">Choose a file</label>
-              <input type="file" id="file" name="myFile" />
-            </div>
-            <div>
-              <button>Send the file</button>
-            </div>
-          </form>
-        <!-- <button type="button" class="buttonCustom" onclick="window.location.href='#';">Stress test</button> -->
+        <div class="functionbox">
+            <p class = "titlebox">Test 2:</br> Redirect</p>
+            <p class ="textbox">Expected behaviour:</br> Redirects the current page to another page (In this case google.com)</p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='/redirect';">Run</button>
+        </div>
+        
+        <div class="functionbox">
+            <p class = "titlebox">Test 3:</br> Big image loading</p>
+            <p class ="textbox">Expected behaviour:</br>Image doesn't pop up all at once, but loads in chuncks. </p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+        </div>
+
+        <div class="functionbox">
+            <p class = "titlebox">Test 4:</br> Show environment variables</p>
+            <p class ="textbox">Expected behaviour:</br>Running the env.py script shows all the environment variables</p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+        </div>
+
+        <div class="functionbox">
+            <p class = "titlebox">Test 5:</br> Upload file (POST)</p>
+            <p class ="textbox">Expected behaviour:</br>File gets succesfully uploaded to server</p>
+            <form method="post" action="/" enctype="multipart/form-data">
+                <div>
+                  <label for="file">Choose a file</br></label>
+                  <input type="file" id="file" name="myFile" style="margin-bottom:10px;margin-top:10px;"/>
+                </div>
+                <div>
+                  <button class="buttonCustompost">Run</button>
+                </div>
+              </form>
+        </div>
+
+        <div class="functionbox">
+            <p class = "titlebox">Test 6:</br> Show Files</p>
+            <p class ="textbox">Expected behaviour:</br>Shows page with files in current directory</p>
+            <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+        </div>
+    </div>
 
     </div>
     </div>
-    <style>
-        .content {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            align-items: center;
-        }
-
-        .buttonCustom {
-            width: 120px;
-            padding: 10px;
-            border-radius: 50px;
-            border: 0px;
-            margin-bottom: 10px;
-            background: #ffbf00;
-        }
-
-        .buttonCustom:hover {
-            background: #ffbf00cf;
-        }
-    </style>
 </body>
 
 </html>
