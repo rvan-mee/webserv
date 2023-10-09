@@ -235,15 +235,15 @@ void	ClientHandler::readFromSocket()
 		return ;
 	}
 
-	std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
+	// std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
 
 	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
 	_requestData.totalBytesRead += bytesRead;
 }
 
-bool	ClientHandler::doneReading( void )
+bool	ClientHandler::doneWithRequest( void )
 {
-	return (_doneReading);
+	return (_doneReading && _cgi.isRunning() == false);
 }
 
 void	ClientHandler::setHup( void )
@@ -253,24 +253,27 @@ void	ClientHandler::setHup( void )
 
 void	ClientHandler::resetState( void )
 {
+	_cgi.clear();
+	_response.clear();
+	bzero(&_requestData, sizeof(_requestData));
 	_requestData.buffer.clear();
 	_requestData.chunkedBuffer.clear();
-	_requestData.contentLength = 0;
-	_requestData.contentLengthSet = false;
-	_requestData.headerSize = 0;
-	_requestData.readHeaders = false;
-	_requestData.totalBytesRead = 0;
-	_requestData.chunkSize = 0;
-	_requestData.movedHeaders = false;
 }
 
 void	ClientHandler::handleRead( int fd, EventPoll& poll )
 {
 	if (_cgi.isEvent(fd)) {
 		_cgi.handleRead();
+
+		// if the CGI is done we want to start sending the  output back to the client
+		if (_cgi.isDoneReading()) {
+			_response = std::string(_cgi.getReadBuffer().data());
+			_cgi.clear();
+			_poll.addEvent(POLLOUT, _socketFd);
+		}
 		return ;
 	}
-	
+
 	this->readFromSocket();
 
 	// if all of the data we expect has not been read yet we add another event filter
@@ -311,11 +314,12 @@ void	ClientHandler::handleWrite( int fd )
 
 	// if all data hasn't been sent yet:
 	if (_response.size() != 0) {
-		// addKqueueEventFilter(_kqueueFd, _socketFd, EVFILT_WRITE);
 		return ;
 	}
 
 	std::cout << RED "Sent all data" RESET << std::endl;
+	// TODO: check if another request if lined up in the read buffer
+	// if there is still data left restart the request & parsing?
 	this->resetState();
 	_poll.removeEvent(_socketFd, POLLOUT);
 }

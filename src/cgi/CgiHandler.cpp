@@ -15,7 +15,6 @@
 #include <signal.h>
 #include <iostream>
 #include <vector>
-// #include <sys/event.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 
@@ -28,6 +27,7 @@ CgiHandler::CgiHandler( EventPoll& poll ) :
 	_pipeWrite(-1),
 	_bytesRead(0),
 	_bytesWrote(0),
+	_doneReading(false),
 	_forkPid(-1)
 {
 	_cgiOutput.reserve(WRITE_SIZE);
@@ -43,9 +43,36 @@ CgiHandler::~CgiHandler()
 		kill(_forkPid, SIGKILL);
 }
 
+void	CgiHandler::clear( void )
+{
+	if (_pipeRead != -1) {
+		close(_pipeRead);
+		_pipeRead = -1;
+	}
+	if (_pipeWrite != -1) {
+		close(_pipeWrite);
+		_pipeWrite = -1;
+	}
+	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
+		kill(_forkPid, SIGKILL);
+		_forkPid = -1;
+	}
+	_cgiInput.clear();
+	_cgiOutput.clear();
+	_cgiOutput.reserve(WRITE_SIZE);
+	_bytesRead = 0;
+	_bytesWrote = 0;
+	_doneReading = false;
+}
+
 void	CgiHandler::setWriteBuffer( std::vector<char>& buffer )
 {
 	_cgiInput = buffer;
+}
+
+std::vector<char>&	CgiHandler::getReadBuffer( void )
+{
+	return (_cgiOutput);
 }
 
 bool	CgiHandler::isEvent(int fd)
@@ -53,8 +80,19 @@ bool	CgiHandler::isEvent(int fd)
 	return (fd == _pipeRead || fd == _pipeWrite);
 }
 
+bool	CgiHandler::isRunning()
+{
+	return (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0);
+}
+
+bool	CgiHandler::isDoneReading()
+{
+	return (_doneReading);
+}
+
 //	************************ I/O Handlers ************************
 
+// After having written everything into the CGI we can start reading from it
 void	CgiHandler::handleRead( void )
 {
 	int	currentBytesRead;
@@ -66,29 +104,29 @@ void	CgiHandler::handleRead( void )
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
 	_bytesRead += currentBytesRead;
-	// int i = 0;
-	// std::cout << _cgiOutput.size() << std::endl;
-	// while (i < _cgiOutput.size())
-	// {
-	// 	std::cout << _cgiOutput[i] << std::endl;
-	// 	i++;
-	// }
-	// if
-	// TODO: check for EOF
-	// throw ( std::runtime_error("Failed to read from the CGI") );
 
-	// get output into _socketBuffer from EventHandler?
-	// _cgiOutput.shrink_to_fit();
-	// else 
-	// TODO: create new read event in kqueue
+	if (_cgiOutput[_bytesRead] == '\0') { // TODO: if this does not work try (waitpid(_forkPid, NULL, WNOHANG) != 0)?
+		_cgiOutput.shrink_to_fit();
+		_poll.removeEvent(_pipeRead, POLLIN);
+		close(_pipeRead);
+		_pipeRead = -1;
+		if (_forkPid != -1) // just some extra security so we for sure dont kill all the programs on macOS
+			kill(_forkPid, SIGKILL);
+		_forkPid = -1;
+		_doneReading = true;
+	}
 }
 
+// First we write all of our data to the CGI pipe
+// After having everything written to it we can wait fot the output of the CGI
 void	CgiHandler::handleWrite( void )
 {
 	size_t	bytesToWrite = WRITE_SIZE;
 
-	if (bytesToWrite > _cgiInput.size())
+	if (bytesToWrite >= _cgiInput.size()) {
+		_cgiInput.push_back('\0'); // add a terminator to the end so the CGI knows it can stop reading
 		bytesToWrite = _cgiInput.size();
+	}
 
 	ssize_t bytesSent = write(_pipeWrite, _cgiInput.data(), bytesToWrite);
 	if (bytesSent < 0)
@@ -99,11 +137,13 @@ void	CgiHandler::handleWrite( void )
 
 
 	if (_cgiInput.size() == 0) {
-		// wrote everything to pipe
+		// wrote everything to pipe start reading the output
 		_poll.addEvent(_pipeRead, POLLIN);
+		_poll.removeEvent(_pipeWrite, POLLOUT);
+		close(_pipeWrite);
+		_pipeWrite = -1;
 		return ;
 	}
-	_poll.addEvent(_pipeWrite, POLLOUT);
 }
 
 /**
@@ -143,9 +183,6 @@ void	CgiHandler::startPythonCgi( std::string script )
 	// Fork process. Throws runtime_error on failure.
 
 	_forkPid = fork();
-	std::cerr << "Forkpid: " << _forkPid << " " << errno << std::endl;
-	std::cout << "Python path: " << PYTHON_PATH << std::endl;
-
 	if ( _forkPid == -1 )
 	{
 		close( pipeToCgi[0] );
@@ -156,28 +193,19 @@ void	CgiHandler::startPythonCgi( std::string script )
 	}
 	else if ( _forkPid == 0 ) // Child process
 	{
-		// sleep (20000);
 		// Setup pipes in child process
-		std::cout << "Executing Python script" << std::endl;
 		childInitPipes( pipeToCgi, pipeFromCgi );
 
 		// Execute the CGI script
     	char *env[] = { NULL };
-		std::cerr << "Entering xecve" << std::endl;
 		execve( PYTHON_PATH, args, env );
-		std::cerr << "python path" << PYTHON_PATH << " args" << args << " errno" << errno << std::endl;
-		std::cerr << "Error executing Python script" << std::endl;
-		// return ;
-		exit( 1 ) ;
+		exit( 1 );
 	}
 	else // Parent process
 	{
 		// Setup pipes in parent process
 		parentInitPipes( pipeToCgi, pipeFromCgi );
-
 		_poll.addEvent(_pipeWrite, POLLOUT);
-		// this->handleWrite();
-
 	}
 }
 
@@ -192,15 +220,14 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
 	// close unused pipe ends
 	close( pipeToCgi[1] ); // Close write end of pipeToCgi
 	close( pipeFromCgi[0] ); // Close read end of pipeFromCgi
-	std::cout << "Child process 1" << std::endl;
+
 	// Redirect stdin and stdout to the pipes
     dup2( pipeToCgi[0], STDIN_FILENO ); // Redirect pipeToCgi to stdin
     dup2( pipeFromCgi[1], STDOUT_FILENO ); // Redirect pipeFromCgi to stdout
-	std::cerr << "Child process 2" << std::endl;
+
 	// Close the remaining pipe ends that are not used
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
-	std::cerr << "Child process 3" << std::endl;
 }
 
 /**
@@ -210,7 +237,6 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
  */
 void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 {
-	std::cout << "Parent process" << std::endl;
 	// close unused pipe ends
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
 	close( pipeFromCgi[1] ); // Close write end of pipeFromCgi
