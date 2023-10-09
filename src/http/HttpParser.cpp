@@ -200,7 +200,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     }
     else if (_request_method == GET || _request_method == POST){
         // Handle non-existent path
-        // response.setError(404, "Not Found");
+        response.setError(404, "Not Found");
     }
     return (response.buildResponse(server));
 }
