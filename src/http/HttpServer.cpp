@@ -111,19 +111,12 @@ void	HttpServer::initServer( Config &config )
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
-		// std::cout << "List before poll: " << std::endl;
-		// _poll.printList();
-
 		ready = poll(events, numEvents, -1);
 		if (ready < 0) {
 			closeServerSockets();
 			throw ( std::runtime_error( "Failed to wait for events" ) );
 		}
 
-
-		// std::cout << "Ready: " << ready << std::endl;
-
-		// _poll.printList();
 		for (size_t i = 0; i < numEvents; i++) {
 			// This event does not contain an fd that is ready
 			if (events[i].revents == 0)
@@ -167,7 +160,7 @@ void	HttpServer::initServer( Config &config )
 						_eventList[eventIndex]->setHup();
 					_eventList[eventIndex]->handleRead(eventFd, _poll);
 				}
-				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneReading()) {
+				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
 					this->removeClient(eventIndex, eventFd);
 				}
 				if ( events[i].revents & POLLOUT ) {
@@ -178,7 +171,6 @@ void	HttpServer::initServer( Config &config )
 				std::cerr << e.what() << '\n';
 			}
 		}
-		// break;
 	}
 }
 

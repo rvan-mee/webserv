@@ -52,7 +52,7 @@ class ClientHandler
 		ClientHandler( int socketFd, EventPoll& poll, Config& config );
 		~ClientHandler();
 
-		bool	doneReading( void );
+		bool	doneWithRequest( void );
 		bool	isEvent( int fd );
 		void	handleRead( int fd,  EventPoll& poll );
 		void	handleWrite( int fd );

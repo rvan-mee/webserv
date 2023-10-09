@@ -357,7 +357,7 @@ Location  &Server::getLocation( std::string locationUrl )
         }
         trimLocationUrl( temp );
     }
-    throw ( std::runtime_error( "blabla No matching location block found" ) );
+    throw ( std::runtime_error( "No matching location block found" ) );
 }
 
 
