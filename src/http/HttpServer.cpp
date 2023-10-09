@@ -121,7 +121,7 @@ void	HttpServer::initServer( Config &config )
 		}
 
 
-		std::cout << "Ready: " << ready << std::endl;
+		// std::cout << "Ready: " << ready << std::endl;
 
 		// _poll.printList();
 		for (size_t i = 0; i < numEvents; i++) {
@@ -165,7 +165,7 @@ void	HttpServer::initServer( Config &config )
 					std::cout << GREEN "Handling read event" RESET << std::endl;
 					if (events[i].revents & POLLRDHUP)
 						_eventList[eventIndex]->setHup();
-					_eventList[eventIndex]->handleRead(eventFd);
+					_eventList[eventIndex]->handleRead(eventFd, _poll);
 				}
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneReading()) {
 					this->removeClient(eventIndex, eventFd);
@@ -178,6 +178,7 @@ void	HttpServer::initServer( Config &config )
 				std::cerr << e.what() << '\n';
 			}
 		}
+		// break;
 	}
 }
 

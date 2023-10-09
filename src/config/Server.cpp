@@ -330,7 +330,19 @@ Location  &Server::getLocation( std::string locationUrl )
     std::vector<std::string>::iterator  it2;
     std::vector<std::string>            urls;
 
-    std::cout << "locationUrl " << locationUrl << std::endl;
+    std::string temp = locationUrl;
+    if ( temp == "/" )
+    {
+        for ( it = this->locations.begin(); it != this->locations.end(); it++ )
+        {
+            urls = it->getUrls();
+            for ( it2 = urls.begin(); it2 != urls.end(); it2++ )
+            {
+                if ( *it2 == "" )
+                    return ( *it );
+            }
+        }
+    }
     for ( std::string temp = locationUrl; temp != ""; trimLocationUrl( temp ) )
     {
         for ( it = this->locations.begin(); it != this->locations.end(); it++ )
@@ -343,8 +355,9 @@ Location  &Server::getLocation( std::string locationUrl )
                     return ( *it );
             }
         }
+        trimLocationUrl( temp );
     }
-    throw ( std::runtime_error( "No matching location block found" ) );
+    throw ( std::runtime_error( "blabla No matching location block found" ) );
 }
 
 

@@ -1,5 +1,7 @@
 #include <HttpResponse.hpp>
 #include <Server.hpp>
+#include <dirent.h>
+#include <sys/stat.h>
 
 /**
  * @brief Construct a new Http Response:: Http Response object
@@ -71,6 +73,153 @@ bool replace(std::string& str, const std::string& from, const std::string& to)
     return true;
 }
 
+void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
+{
+	//users must be able to input any
+	if (!server.getIndex().empty())
+		std::cout << "index: " << server.getIndex()[0] << std::endl;
+	if (!server.getIndex().empty() && !server.getIndex()[0].empty())
+	{
+		//check if index file exists
+		std::ifstream index(server.getIndex()[0]); //taking file as inputstream
+		std::string e;
+		if (index.is_open())
+		{
+			std::ostringstream ss;
+			ss << index.rdbuf(); // reading data
+			e = ss.str();
+			_message_body = e;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+
+		}
+	}
+	else
+	{
+		_message_body += "<html>\n<head><title>Index of " + directoryPath + "</title></head>\n";
+		_message_body += "<h1>Index of " + directoryPath + "</h1><hr>\n";
+
+		DIR *dir;
+		struct dirent *ent;
+		if ((dir = opendir (directoryPath.c_str())) == NULL)
+		{
+			std::cerr << "Can't open directory: " << directoryPath << std::endl;
+		}
+		_message_body += "<table><tr><th>Name</th><th>Last Modified</th><th>Size (bytes)</th></tr>";
+		while ((ent = readdir(dir)) != NULL)
+		{
+			if (std::string(ent->d_name) == ".")
+				continue ;
+
+			std::string filepath = directoryPath;
+			if(directoryPath.back()!= '/'){
+				filepath += '/';
+			}
+			filepath += ent->d_name;
+
+			//get directory/file information
+			struct stat buf; //struct to store file/directory data
+			stat(filepath.c_str(), &buf);
+		
+
+			_message_body += "<tr><td>";
+			_message_body += "<a href=\"";
+			_message_body += ent->d_name;
+			if (ent->d_type == DT_DIR)
+				_message_body += "/";
+			_message_body += "\">";
+			_message_body += ent->d_name;
+			if (ent->d_type == DT_DIR)
+				_message_body += "/";
+			_message_body += "</a></td><td>";
+			if (ent->d_type != DT_DIR)
+				_message_body += "</td><td align=\"right\">" + std::to_string(buf.st_size) + "</td>";
+			else
+				_message_body += "</td><td align=\"right\"> - </td>";
+			_message_body += '\n';
+		}
+		closedir(dir);	
+		_message_body += "</table></hr></body>\n</html>\n";
+
+	}
+
+	std::cout << "buildBodyDirectory" << std::endl;
+	std::cout << "directoryPath: " << directoryPath << std::endl;
+}
+
+std::map<std::string, std::string> mimeTypes = {
+    {"html", "text/html"},
+    {"htm", "text/html"},
+    {"txt", "text/plain"},
+    {"jpg", "image/jpeg"},
+    {"jpeg", "image/jpeg"},
+    {"png", "image/png"},
+    // Add more mappings as needed
+};
+
+std::string getContentTypeFromFile(const std::string& filename) {
+    // Extract the file extension
+    size_t dotPos = filename.find_last_of('.');
+    if (dotPos == std::string::npos) {
+        return "application/octet-stream";  // Default content type
+    }
+    std::string extension = filename.substr(dotPos + 1);
+
+    // Find the corresponding content type in the map
+    auto it = mimeTypes.find(extension);
+    if (it != mimeTypes.end()) {
+        return it->second;
+    } else {
+        return "application/octet-stream";  // Default content type
+    }
+}
+
+void HttpResponse::buildBodyFile(std::string requestedFile)
+{
+	//check if file exists
+	std::cout << "requestedFile: " << requestedFile << std::endl;
+	_content_type = getContentTypeFromFile(requestedFile);
+	if (_content_type == "application/octet-stream")
+		return(setError(404, "Not Found"));
+	else if (_content_type == "text/html")
+	{
+		std::ifstream file(requestedFile); //taking file as inputstream
+		std::string e;
+		if (file.is_open())
+		{
+			std::ostringstream ss;
+			ss << file.rdbuf(); // reading data
+			e = ss.str();
+			_message_body = e;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+	}
+	else
+	{
+		// if (_request_URI.find(server.getUploadsDir()) != std::string::npos) 
+		std::ifstream file(requestedFile, std::ios::binary); //taking file as inputstream
+		std::string e;
+		if (file.is_open())
+		{
+			std::ostringstream ss;
+			ss << file.rdbuf(); // reading data
+			e = ss.str();
+			_message_body = e;
+		}
+		else
+		{
+			std::cout << "Error opening file";
+		}
+	}
+	std::cout << "buildBodyFile" << std::endl;
+	std::cout << "requestedFile: " << requestedFile << std::endl;
+}
+
 void	 HttpResponse::setMessageBody( Server server )
 {
 	std::map<std::string, int>::iterator it;
@@ -109,7 +258,7 @@ void	 HttpResponse::setMessageBody( Server server )
 			std::cout << "Error opening file";
 		}
 	}
-	else
+	else if (_message_body.empty())
 	{
 		std::ifstream f("src/http/index.html"); //taking file as inputstream
 		std::string s;
