@@ -235,7 +235,7 @@ void	ClientHandler::readFromSocket()
 		return ;
 	}
 
-	std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
+	// std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
 
 	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
 	_requestData.totalBytesRead += bytesRead;
@@ -255,15 +255,9 @@ void	ClientHandler::resetState( void )
 {
 	_cgi.clear();
 	_response.clear();
+	bzero(&_requestData, sizeof(_requestData));
 	_requestData.buffer.clear();
 	_requestData.chunkedBuffer.clear();
-	_requestData.contentLength = 0;
-	_requestData.contentLengthSet = false;
-	_requestData.headerSize = 0;
-	_requestData.readHeaders = false;
-	_requestData.totalBytesRead = 0;
-	_requestData.chunkSize = 0;
-	_requestData.movedHeaders = false;
 }
 
 void	ClientHandler::handleRead( int fd, EventPoll& poll )

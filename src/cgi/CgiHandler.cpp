@@ -193,14 +193,13 @@ void	CgiHandler::startPythonCgi( std::string script )
 	}
 	else if ( _forkPid == 0 ) // Child process
 	{
-		// sleep (20000);
 		// Setup pipes in child process
 		childInitPipes( pipeToCgi, pipeFromCgi );
 
 		// Execute the CGI script
     	char *env[] = { NULL };
 		execve( PYTHON_PATH, args, env );
-		exit( 1 ) ;
+		exit( 1 );
 	}
 	else // Parent process
 	{
