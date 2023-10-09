@@ -91,5 +91,11 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     {
         parseCgiRequest(response);
     }
+    else if ( this->_request_URI == "/redirect" )
+    {
+        std::cout << "redirect" << std::endl;
+        response.setError( 301, "Moved Permanently" );
+        response.setRedirect( server.getLocation("/redirect").getRedirect() );
+    }
     return (response.buildResponse(server));
 }

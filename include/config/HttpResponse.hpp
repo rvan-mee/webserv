@@ -41,6 +41,7 @@ class HttpResponse
 	std::string	_reason_phrase;
 	std::string	_message_body;
 	std::string	_content_type;
+	std::string	_redirect;
 };
 
 #endif

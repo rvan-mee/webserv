@@ -1,12 +1,17 @@
 #include <HttpResponse.hpp>
 #include <Server.hpp>
 
+/**
+ * @brief Construct a new Http Response:: Http Response object
+ * initialize all the variables to empty.
+*/
 HttpResponse::HttpResponse()
 {
-	_status_code = 0;
-	_reason_phrase = "";
-	_content_type = "";
-	_message_body = "";
+	_status_code = 0; 
+	_reason_phrase = ""; 
+	_content_type = ""; 
+	_message_body = ""; 
+	_redirect = "";
 }
 
 void HttpResponse::setContentType(std::string contentType)
@@ -16,12 +21,19 @@ void HttpResponse::setContentType(std::string contentType)
 	_content_type = contentType;
 }
 
+/**
+ * @brief Add a line to the message body
+ * @param line The line to add
+*/
 void HttpResponse::addLineToBody(std::string line)
 {
 	_message_body += line;
 	_message_body += "\n";
 }
 
+/**
+ * @brief Print all the data in the class
+*/
 void HttpResponse::printAll()
 {
 	std::cout << "Reason Phrase: " << _reason_phrase << std::endl;
@@ -30,13 +42,28 @@ void HttpResponse::printAll()
 	std::cout << "Body: " << _message_body << std::endl;
 }
 
+/**
+ * @brief Set the error object.
+ * @param statusCode The status code
+ * @param reasonPhrase The corresponding explanation for the status code
+*/
 void HttpResponse::setError(int statusCode, std::string reasonPhrase)
 {
 	_status_code = statusCode;
 	_reason_phrase = reasonPhrase;
 }
 
-bool replace(std::string& str, const std::string& from, const std::string& to) {
+/**
+ * @brief Set the redirect object.
+ * @param redirect The redirect location
+*/
+void HttpResponse::setRedirect( std::string redirect )
+{
+	this->_redirect = redirect;
+}
+
+bool replace(std::string& str, const std::string& from, const std::string& to) 
+{
     size_t start_pos = str.find(from);
     if(start_pos == std::string::npos)
         return false;
@@ -100,6 +127,11 @@ void	 HttpResponse::setMessageBody( Server server )
 	}
 }
 
+/**
+ * @brief Build the response string
+ * @param server The server object with all the server information
+ * @return std::string The response string
+*/
 std::string HttpResponse::buildResponse( Server server)
 {
 	std::string str;
