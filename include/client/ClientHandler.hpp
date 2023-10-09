@@ -54,7 +54,7 @@ class ClientHandler
 
 		bool	doneWithRequest( void );
 		bool	isEvent( int fd );
-		void	handleRead( int fd );
+		void	handleRead( int fd,  EventPoll& poll );
 		void	handleWrite( int fd );
 		void	resetState( void );
 		void	setHup( void );

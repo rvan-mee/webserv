@@ -1,5 +1,4 @@
-#include <HttpRequest.hpp>
-#include <poll.h>
+#include "HttpRequest.hpp" 
 
 HttpRequest::requestType	HttpRequest::getMethod()
 {
@@ -19,20 +18,22 @@ void	HttpRequest::setMethod(requestType method)
 
 void	HttpRequest::setURI(std::string target)
 {
+    if (target.empty())
+        throw ( std::runtime_error( "no target in request found" ) );
     _request_URI = target;
 }
 
 void	HttpRequest::setContentType(std::string contentType)
 {
     if (contentType.empty())
-        throw ( std::runtime_error( "no content-type in request found" ) ); // dont know if content-type is mandatory
+        throw ( std::runtime_error( "no content-type in request found" ) );
     _content_type = contentType;
 }
 
 void	HttpRequest::setHost(std::string host)
 {
     if (host.empty())
-        throw ( std::runtime_error( "no host in request found" ) ); // dont know if host is mandatory
+        throw ( std::runtime_error( "no host in request found" ) );
     _host = host;
 }
 

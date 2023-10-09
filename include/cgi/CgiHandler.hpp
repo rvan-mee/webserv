@@ -16,6 +16,7 @@
 #include <EventPoll.hpp>
 #include <vector>
 #include <unistd.h>
+#include <string>
 
 class CgiHandler
 {
@@ -50,7 +51,7 @@ class CgiHandler
 		void	handleWrite( void );
 		void	clear( void );
 
-		void	startPythonCgi( void );
+		void	startPythonCgi( std::string script );
 };
 
 #endif

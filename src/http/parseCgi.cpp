@@ -1,6 +1,9 @@
 #include <HttpRequest.hpp>
+#include <Server.hpp>
+#include <CgiHandler.hpp>
+#include <EventPoll.hpp>
 
-void HttpRequest::parseCgiRequest(HttpResponse &response)
+void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll)
 {
     if (_request_method == 0 || _request_method == 1)
     {
@@ -12,14 +15,25 @@ void HttpRequest::parseCgiRequest(HttpResponse &response)
         // Extract the substring between the last '/' and '.py'
         std::string result = _request_URI.substr(slashPos + 1, dotPyPos - slashPos - 1);
 
-        std::cout << "Result: " << result << std::endl; 
-        std::ifstream file("/home/dkramer/Documents/WEBSERVfolder/cgi-bin/" + result + ".py");
+        // std::cout << "Result: " << result << std::endl; 
+        std::ifstream file(server.getLocation(".py").getAlias() + result + ".py");
 
         // Check if the file is open
         if (file.is_open()) {
             std::cout << "File exists." << std::endl;
+            CgiHandler cgiHandler = CgiHandler( poll );
             // You can now read or manipulate the file here if needed.
+            try {
+            cgiHandler.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+            std::cout << "file excecuted" << std::endl;
+            }
+            catch (std::exception &e)
+    {
+        std::cout << "here" << std::endl;
+        std::cerr << e.what() << std::endl;
+    }
             file.close(); // Don't forget to close the file when you're done with it.
+            return ;
         } else {
             return (response.setError(404, "The requested resource was not found"));
         }
