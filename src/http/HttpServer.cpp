@@ -167,7 +167,7 @@ void	HttpServer::initServer( Config &config )
 						_eventList[eventIndex]->setHup();
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
-				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneReading()) {
+				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
 					this->removeClient(eventIndex, eventFd);
 				}
 				if ( events[i].revents & POLLOUT ) {

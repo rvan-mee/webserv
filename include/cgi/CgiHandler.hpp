@@ -15,6 +15,7 @@
 
 #include <EventPoll.hpp>
 #include <vector>
+#include <unistd.h>
 
 class CgiHandler
 {
@@ -32,17 +33,22 @@ class CgiHandler
 		int					_bytesRead;
 		std::vector<char>	_cgiInput;
 		int					_bytesWrote;
-		int					_forkPid;
+		bool				_doneReading;
+		pid_t				_forkPid;
 
 	public:
 		CgiHandler( EventPoll& poll );
 		~CgiHandler();
 	
-		void	setWriteBuffer( std::vector<char>& buffer );
+		void				setWriteBuffer( std::vector<char>& buffer );
+		std::vector<char>&	getReadBuffer( void );
 
 		bool	isEvent(int fd);
+		bool	isRunning( void );
+		bool	isDoneReading( void );
 		void	handleRead( void );
 		void	handleWrite( void );
+		void	clear( void );
 
 		void	startPythonCgi( void );
 };

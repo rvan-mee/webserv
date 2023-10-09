@@ -19,7 +19,6 @@
 # include <ClientHandler.hpp>
 # include <EventPoll.hpp>
 # include <netinet/in.h> // sockaddr_in
-// # include <sys/event.h>  // kqueue
 
 class HttpServer
 {

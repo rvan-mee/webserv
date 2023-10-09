@@ -15,7 +15,6 @@
 #include <signal.h>
 #include <iostream>
 #include <vector>
-// #include <sys/event.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 
@@ -28,6 +27,7 @@ CgiHandler::CgiHandler( EventPoll& poll ) :
 	_pipeWrite(-1),
 	_bytesRead(0),
 	_bytesWrote(0),
+	_doneReading(false),
 	_forkPid(-1)
 {
 	_cgiOutput.reserve(WRITE_SIZE);
@@ -43,9 +43,36 @@ CgiHandler::~CgiHandler()
 		kill(_forkPid, SIGKILL);
 }
 
+void	CgiHandler::clear( void )
+{
+	if (_pipeRead != -1) {
+		close(_pipeRead);
+		_pipeRead = -1;
+	}
+	if (_pipeWrite != -1) {
+		close(_pipeWrite);
+		_pipeWrite = -1;
+	}
+	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
+		kill(_forkPid, SIGKILL);
+		_forkPid = -1;
+	}
+	_cgiInput.clear();
+	_cgiOutput.clear();
+	_cgiOutput.reserve(WRITE_SIZE);
+	_bytesRead = 0;
+	_bytesWrote = 0;
+	_doneReading = false;
+}
+
 void	CgiHandler::setWriteBuffer( std::vector<char>& buffer )
 {
 	_cgiInput = buffer;
+}
+
+std::vector<char>&	CgiHandler::getReadBuffer( void )
+{
+	return (_cgiOutput);
 }
 
 bool	CgiHandler::isEvent(int fd)
@@ -53,8 +80,19 @@ bool	CgiHandler::isEvent(int fd)
 	return (fd == _pipeRead || fd == _pipeWrite);
 }
 
+bool	CgiHandler::isRunning()
+{
+	return (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0);
+}
+
+bool	CgiHandler::isDoneReading()
+{
+	return (_doneReading);
+}
+
 //	************************ I/O Handlers ************************
 
+// After having written everything into the CGI we can start reading from it
 void	CgiHandler::handleRead( void )
 {
 	int	currentBytesRead;
@@ -66,21 +104,29 @@ void	CgiHandler::handleRead( void )
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
 	_bytesRead += currentBytesRead;
-	
-	// if
-	// TODO: check for EOF
-	// get output into _socketBuffer from EventHandler?
-	// _cgiOutput.shrink_to_fit();
-	// else
-	// TODO: create new read event in kqueue
+
+	if (_cgiOutput[_bytesRead] == '\0') { // TODO: if this does not work try (waitpid(_forkPid, NULL, WNOHANG) != 0)?
+		_cgiOutput.shrink_to_fit();
+		_poll.removeEvent(_pipeRead, POLLIN);
+		close(_pipeRead);
+		_pipeRead = -1;
+		if (_forkPid != -1) // just some extra security so we for sure dont kill all the programs on macOS
+			kill(_forkPid, SIGKILL);
+		_forkPid = -1;
+		_doneReading = true;
+	}
 }
 
+// First we write all of our data to the CGI pipe
+// After having everything written to it we can wait fot the output of the CGI
 void	CgiHandler::handleWrite( void )
 {
 	size_t	bytesToWrite = WRITE_SIZE;
 
-	if (bytesToWrite > _cgiInput.size())
+	if (bytesToWrite >= _cgiInput.size()) {
+		_cgiInput.push_back('\0'); // add a terminator to the end so the CGI knows it can stop reading
 		bytesToWrite = _cgiInput.size();
+	}
 
 	ssize_t bytesSent = write(_pipeWrite, _cgiInput.data(), bytesToWrite);
 	if (bytesSent < 0)
@@ -89,11 +135,13 @@ void	CgiHandler::handleWrite( void )
 	_cgiInput.erase(_cgiInput.begin(), _cgiInput.begin() + bytesSent);
 
 	if (_cgiInput.size() == 0) {
-		// wrote everything to pipe
+		// wrote everything to pipe start reading the output
 		_poll.addEvent(_pipeRead, POLLIN);
+		_poll.removeEvent(_pipeWrite, POLLOUT);
+		close(_pipeWrite);
+		_pipeWrite = -1;
 		return ;
 	}
-	_poll.addEvent(_pipeWrite, POLLOUT);
 }
 
 /**
