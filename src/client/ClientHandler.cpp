@@ -12,15 +12,13 @@
 
 #include <ClientHandler.hpp>
 #include <sys/socket.h>
-// #include <sys/event.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <HttpRequest.hpp>
-
 #include <iostream>
 
 #define READ_SIZE 1024 * 1024
-#define WRITE_SIZE 1024 * 1024
+#define WRITE_SIZE 1024 * 100
+// #define WRITE_SIZE 1024 * 1024 * 16 is faster but doesn't have nice animation in browser
 
 #define READ 0
 #define WRITE 1
@@ -37,7 +35,8 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 	_config(config),
 	_poll(poll),
 	_doneReading(false),
-	_pollHupSet(false)
+	_pollHupSet(false),
+	_request(_cgi, _poll, _socketFd)
 {
 	this->resetState();
 }
@@ -45,6 +44,11 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 ClientHandler::~ClientHandler()
 {
 	// TODO: remove all poll events related to this?
+}
+
+bool	ClientHandler::isSocketFd( int fd )
+{
+	return (fd == _socketFd);
 }
 
 bool	ClientHandler::isEvent( int fd )
@@ -260,17 +264,25 @@ void	ClientHandler::resetState( void )
 	_requestData.chunkedBuffer.clear();
 }
 
-void	ClientHandler::handleRead( int fd, EventPoll& poll )
+void	ClientHandler::endCgi()
+{
+	_cgi.end();
+	_response = std::string(_cgi.getReadBuffer().data());
+	_cgi.clear();
+	_poll.addEvent(_socketFd, POLLOUT);
+}
+
+void	ClientHandler::handleRead( int fd )
 {
 	if (_cgi.isEvent(fd)) {
 		_cgi.handleRead();
 
 		// if the CGI is done we want to start sending the  output back to the client
-		if (_cgi.isDoneReading()) {
-			_response = std::string(_cgi.getReadBuffer().data());
-			_cgi.clear();
-			_poll.addEvent(POLLOUT, _socketFd);
-		}
+		// if (_cgi.isDoneReading()) {
+		// 	_response = std::string(_cgi.getReadBuffer().data());
+		// 	_cgi.clear();
+		// 	_poll.addEvent(POLLOUT, _socketFd);
+		// }
 		return ;
 	}
 
@@ -284,18 +296,17 @@ void	ClientHandler::handleRead( int fd, EventPoll& poll )
 
 	std::cout << GREEN "Received all data" RESET << std::endl;
 	// all data has been read, now we can parse and prepare a response
-	HttpRequest server;
 
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
-	_response = server.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"), poll);
+	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"));
 	// std::cout << "Response: " << std::endl;
 	// std::cout << _response << std::endl;
-	_poll.addEvent(_socketFd, POLLOUT);
 }
 
 void	ClientHandler::handleWrite( int fd )
 {
+	// std::cout << "Response: " << _response << std::endl;
 	if (fd != _socketFd) {
 		_cgi.handleWrite();
 		return ;

@@ -50,6 +50,7 @@ class CgiHandler
 		void	handleRead( void );
 		void	handleWrite( void );
 		void	clear( void );
+		void	end( void );
 
 		void	startPythonCgi( std::string script );
 };

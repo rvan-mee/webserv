@@ -15,6 +15,7 @@
 
 #include <EventPoll.hpp>
 #include <CgiHandler.hpp>
+#include <HttpRequest.hpp>
 #include <Config.hpp>
 #include <string>
 
@@ -47,6 +48,7 @@ class ClientHandler
 		EventPoll&			_poll;
 		bool				_doneReading;
 		bool				_pollHupSet;
+		HttpRequest			_request;
 
 	public:
 		ClientHandler( int socketFd, EventPoll& poll, Config& config );
@@ -54,10 +56,12 @@ class ClientHandler
 
 		bool	doneWithRequest( void );
 		bool	isEvent( int fd );
-		void	handleRead( int fd,  EventPoll& poll );
+		bool	isSocketFd( int fd );
+		void	handleRead( int fd );
 		void	handleWrite( int fd );
 		void	resetState( void );
 		void	setHup( void );
+		void	endCgi( void );
 };
 
 #endif

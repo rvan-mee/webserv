@@ -17,6 +17,7 @@
 #include <vector>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <fcntl.h>
 
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
@@ -30,26 +31,31 @@ CgiHandler::CgiHandler( EventPoll& poll ) :
 	_doneReading(false),
 	_forkPid(-1)
 {
-	_cgiOutput.reserve(WRITE_SIZE);
 }
 
 CgiHandler::~CgiHandler()
 {
 	if (_pipeRead != -1)
-		close(_pipeRead); // TODO: remove event from poll list
+		close(_pipeRead);
 	if (_pipeWrite != -1)
-		close(_pipeWrite); // TODO: remove event from poll list
-	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) // TODO: does the waitpid work?? gotta test
+		close(_pipeWrite);
+	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
 		kill(_forkPid, SIGKILL);
+		std::cout << "Killing child deconstructor" << std::endl;
+	}
+	_poll.removeEvent(_pipeWrite, POLLOUT);
+	_poll.removeEvent(_pipeRead, POLLIN);
 }
 
 void	CgiHandler::clear( void )
 {
 	if (_pipeRead != -1) {
+		_poll.removeEvent(_pipeRead, POLLIN);
 		close(_pipeRead);
 		_pipeRead = -1;
 	}
 	if (_pipeWrite != -1) {
+		_poll.removeEvent(_pipeWrite, POLLOUT);
 		close(_pipeWrite);
 		_pipeWrite = -1;
 	}
@@ -59,7 +65,6 @@ void	CgiHandler::clear( void )
 	}
 	_cgiInput.clear();
 	_cgiOutput.clear();
-	_cgiOutput.reserve(WRITE_SIZE);
 	_bytesRead = 0;
 	_bytesWrote = 0;
 	_doneReading = false;
@@ -95,26 +100,47 @@ bool	CgiHandler::isDoneReading()
 // After having written everything into the CGI we can start reading from it
 void	CgiHandler::handleRead( void )
 {
+	std::vector<char>	newRead(READ_SIZE);
 	int	currentBytesRead;
 
-	if (_cgiOutput.size() < _cgiOutput.capacity() + READ_SIZE)
-		_cgiOutput.resize(_cgiOutput.size() * 2);
-	currentBytesRead = read(_pipeRead, &(_cgiOutput[_bytesRead]), READ_SIZE);
+	// if (_cgiOutput.size() < _cgiOutput.capacity() + READ_SIZE)
+	// 	_cgiOutput.resize(_cgiOutput.size() * 2);
+	currentBytesRead = read(_pipeRead, newRead.data(), READ_SIZE);
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
+	_cgiOutput.insert(_cgiOutput.end(), newRead.begin(), newRead.begin() + currentBytesRead);
 	_bytesRead += currentBytesRead;
 
-	if (_cgiOutput[_bytesRead] == '\0') { // TODO: if this does not work try (waitpid(_forkPid, NULL, WNOHANG) != 0)?
-		_cgiOutput.shrink_to_fit();
-		_poll.removeEvent(_pipeRead, POLLIN);
-		close(_pipeRead);
-		_pipeRead = -1;
-		if (_forkPid != -1) // just some extra security so we for sure dont kill all the programs on macOS
-			kill(_forkPid, SIGKILL);
-		_forkPid = -1;
-		_doneReading = true;
-	}
+	// std::cout << "Current last output: " << _cgiOutput[_bytesRead] << std::endl;
+	// if (_cgiOutput[_bytesRead - 1] == '\0') {
+	// 	std::cout << "Read everything from CGI" << std::endl;
+	// 	std::cout << "output: " << _cgiOutput.data() << std::endl;
+	// 	_cgiOutput.shrink_to_fit();
+	// 	_poll.removeEvent(_pipeRead, POLLIN);
+	// 	close(_pipeRead);
+	// 	_pipeRead = -1;
+	// 	if (_forkPid != -1)  {
+	// 	std::cout << "Killing child handle read" << std::endl;
+	// 		kill(_forkPid, SIGKILL);
+	// 	}// just some extra security so we for sure dont kill all the programs on macOS
+	// 	_forkPid = -1;
+	// 	_doneReading = true;
+	// }
+}
+
+void	CgiHandler::end()
+{
+	// std::cout << "Read everything from CGI" << std::endl;
+	_cgiOutput.push_back('\0');
+	std::cout << "output: " << _cgiOutput.data() << std::endl;
+	_cgiOutput.shrink_to_fit();
+	// _poll.removeEvent(_pipeRead, POLLIN);
+	// close(_pipeRead);
+	// _pipeRead = -1;
+	// if (_forkPid != -1) // just some extra security so we for sure dont kill all the programs on macOS
+	// 	kill(_forkPid, SIGKILL);
+	// _forkPid = -1;
 }
 
 // First we write all of our data to the CGI pipe
@@ -163,13 +189,14 @@ void	CgiHandler::handleWrite( void )
  */
 void	CgiHandler::startPythonCgi( std::string script )
 {
+	std::cout << "STARTING CGI!!" << std::endl;
+	this->clear();
 	int pipeToCgi[2];
 	int pipeFromCgi[2];
 	
 	// temp
 	char *args[] = { "python", const_cast<char*>(script.c_str()), NULL };
 
-	
 	// Init pipes. Throws runtime_error on failure.
 	if ( pipe( pipeToCgi ) == -1)
 		throw ( std::runtime_error("Failed to create pipe") );
@@ -179,9 +206,14 @@ void	CgiHandler::startPythonCgi( std::string script )
 		close( pipeToCgi[1] );
 		throw ( std::runtime_error("Failed to create pipe") );
 	}
-		
-	// Fork process. Throws runtime_error on failure.
 
+	// set pipes to non-blocking
+	fcntl(pipeFromCgi[0], F_SETFL, O_NONBLOCK);
+	fcntl(pipeFromCgi[1], F_SETFL, O_NONBLOCK);
+	fcntl(pipeToCgi[0], F_SETFL, O_NONBLOCK);
+	fcntl(pipeToCgi[1], F_SETFL, O_NONBLOCK);
+
+	// Fork process. Throws runtime_error on failure.
 	_forkPid = fork();
 	if ( _forkPid == -1 )
 	{
@@ -199,6 +231,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 		// Execute the CGI script
     	char *env[] = { NULL };
 		execve( PYTHON_PATH, args, env );
+		std::cerr << "Error executing python script" << std::endl;
 		exit( 1 );
 	}
 	else // Parent process

@@ -148,8 +148,13 @@ void	HttpServer::initServer( Config &config )
 
 			try {
 				/* If the client had disconnected, close the connection */
-				if ( events[i].revents & POLLHUP ) { // TODO: still need to watch out that it is not a pipe closure?
-					this->removeClient(eventIndex, eventFd);
+				if ( events[i].revents & POLLHUP ) {
+					if (_eventList[eventIndex]->isSocketFd(eventFd))
+						this->removeClient(eventIndex, eventFd);
+					else {
+						_eventList[eventIndex]->endCgi();
+						// the POLLHUP is connected to a cgi pipe
+					}
 				}
 				if ( events[i].revents & POLLERR ) {
 					std::cout << "POLLERR CAUGHT" << std::endl;
@@ -158,7 +163,7 @@ void	HttpServer::initServer( Config &config )
 					std::cout << GREEN "Handling read event" RESET << std::endl;
 					if (events[i].revents & POLLRDHUP)
 						_eventList[eventIndex]->setHup();
-					_eventList[eventIndex]->handleRead(eventFd, _poll);
+					_eventList[eventIndex]->handleRead(eventFd);
 				}
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
 					this->removeClient(eventIndex, eventFd);
@@ -249,6 +254,7 @@ void	HttpServer::createSockets( void )
  * @param config The config object containing all the server information
  * @throw std::runtime_error if something goes wrong during the binding
 */
+#include <string.h>
 void	HttpServer::bindSockets( void )
 {
 	sockaddr_in					address;
@@ -261,6 +267,7 @@ void	HttpServer::bindSockets( void )
 		/* Bind socket to port. If it fails, throw an error */
 		if ( bind( _serverSockets[i], ( struct sockaddr * )&address, sizeof( address ) ) < 0 ) {
 			closeServerSockets();
+			std::cerr << strerror(errno) << std::endl;
 			throw ( std::runtime_error( "Failed to bind socket to port" ) );
 		}
 	}

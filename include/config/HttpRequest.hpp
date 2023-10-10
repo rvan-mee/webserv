@@ -22,16 +22,21 @@
 #include <HttpResponse.hpp>
 #include <cstring>
 #include <EventPoll.hpp>
+#include <CgiHandler.hpp>
+#include <EventPoll.hpp>
+
 /**
- * @brief HtppRequest class to parse the request and store the data in the class variables
+ * @brief HttpRequest class to parse the request and store the data in the class variables
  * 
  */
 class HttpRequest
 {
 	public:
+		HttpRequest(CgiHandler& cgi, EventPoll& poll, int socketFd) : _cgi(cgi), _poll(poll), _socketFd(socketFd) {}
+
 		enum requestType	{ GET, POST, DELETE };
-		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server, EventPoll& poll );
-		void				isRequestLine(std::string line, HttpResponse &response, Server server);
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server);
+		void				isRequestLine(std::string line, HttpResponse &response);
 		void				isHeader(std::string line, HttpResponse &response);
 		requestType			getMethod();
 		void				setMethod(requestType method);
@@ -40,16 +45,21 @@ class HttpRequest
 		void				setHost(std::string host);
 		void				addLineToBody(std::string line);
 		void				printAll();
-		void				parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll);
+		void				parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest);
 		void				parseGetRequest(HttpResponse &response, Server server);
-		void				parsePostRequest(HttpResponse &response, Server server, EventPoll& poll);
+		void				parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest);
 		void				parseDeleteRequest(HttpResponse &response, Server server);
 	private:
+		HttpRequest();
+
 		requestType	_request_method;
 		std::string _request_URI;
 		std::string	_message_body;
 		std::string	_content_type;
 		std::string	_host;
+		CgiHandler&	_cgi;
+		EventPoll&	_poll;
+		int			_socketFd;
 };
 
 #endif

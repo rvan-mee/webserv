@@ -1,9 +1,8 @@
 #include <HttpRequest.hpp>
 #include <Server.hpp>
-#include <CgiHandler.hpp>
 #include <EventPoll.hpp>
 
-void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, EventPoll& poll)
+void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest)
 {
     if (_request_method == 0 || _request_method == 1)
     {
@@ -21,17 +20,17 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, EventPo
         // Check if the file is open
         if (file.is_open()) {
             std::cout << "File exists." << std::endl;
-            CgiHandler cgiHandler = CgiHandler( poll );
             // You can now read or manipulate the file here if needed.
             try {
-            cgiHandler.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
-            std::cout << "file excecuted" << std::endl;
+                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+                isCgiRequest = true;
             }
             catch (std::exception &e)
-    {
-        std::cout << "here" << std::endl;
-        std::cerr << e.what() << std::endl;
-    }
+            {
+                std::cerr << e.what() << std::endl;
+                file.close();
+                return (response.setError(500, "Internal server error"));
+            }
             file.close(); // Don't forget to close the file when you're done with it.
             return ;
         } else {
