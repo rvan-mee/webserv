@@ -339,6 +339,8 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
+	std::cout << _response << std::endl;
+
 	size_t	bytesToWrite = WRITE_SIZE;
 	if (bytesToWrite > _response.size())
 		bytesToWrite = _response.size();
