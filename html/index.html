@@ -16,32 +16,51 @@
         <p>Code 'n Twerk: Webserver Work</p>
 
         <div class="flex-container">
+
             <div class="functionbox">
-                <p class = "titlebox">Test 1:</br> Stress Test</p>
+                <p class = "titlebox">Test :</br>Stress Test (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Server doesn't crash when it handles a big load of requests</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
             </div>
 
             <div class="functionbox">
-                <p class = "titlebox">Test 2:</br> Redirect</p>
+                <p class = "titlebox">Test :</br>Redirect (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br> Redirects the current page to another page (In this case google.com)</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='/redirect';">Run</button>
             </div>
     
             <div class="functionbox">
-                <p class = "titlebox">Test 3:</br> Big image loading</p>
-                <p class ="textbox">Expected behaviour:</br>Image doesn't pop up all at once, but loads in chuncks. </p>
+                <p class = "titlebox">Test :</br>Big image loading (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Image loads. If very big, it loads chuncked (and non-blocking)</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
             </div>
 
             <div class="functionbox">
-                <p class = "titlebox">Test 4:</br> Show environment variables</p>
+                <p class = "titlebox">Test :</br>Show environment variables (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Running the env.py script shows all the environment variables</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
             </div>
 
             <div class="functionbox">
-                <p class = "titlebox">Test 5:</br> Upload file (POST)</p>
+                <p class = "titlebox">Test :</br>New Page (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Opens a new page (page1.html)</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/page1.html';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br>New Page 2 (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Opens a new page (page2.html)</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/page2.html';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br>Basic Form (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Opens a new page (page2.html)</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/page2.html';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br>Upload file (POST) (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>File gets succesfully uploaded to server</p>
                 <form method="post" action="/" enctype="multipart/form-data">
                     <div>
@@ -55,10 +74,41 @@
             </div>
 
             <div class="functionbox">
-                <p class = "titlebox">Test 6:</br> Show Files</p>
+                <p class = "titlebox">Test :</br> Show Files (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Shows page with files in current directory</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
             </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br> Files delete (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Deletes a file from the server</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br> Sleeping CGI (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>CGI Sleeps for certain amount of time</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br> CGI No Rights (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Tries running a cgi that doesn't have exec rights</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br> 404 page not found (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Tries to go to /gadsfdagasd (which doesn't exist)</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/gadsfdagasd';">Run</button>
+            </div>
+
+            <div class="functionbox">
+                <p class = "titlebox">Test :</br> 405 not allowed (NWY)</p>
+                <p class ="textbox">Expected behaviour:</br>Page not allowed to visit</p>
+                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+            </div>
+
         </div>
     </div>
 </body>

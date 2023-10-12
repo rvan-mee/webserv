@@ -229,6 +229,8 @@ void    Config::parseServerBlock( std::vector<std::string> &tokens )
             newServer.parseAutoindex( tokens );
         else if ( tokens[0] == "uploads_dir" )
             newServer.parseUploadsDir( tokens );
+        else if ( tokens[0] == "redirect" )
+            newServer.parseRedirect( tokens );
         else
             throw ( std::runtime_error( "Invalid instruction in server block" ) );
     }
