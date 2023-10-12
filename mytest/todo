@@ -8,7 +8,7 @@
 - save file in correct folder and make Http response with file in it (change img in html)
 - handle turn on or off directory listing for request @done
 - default error pages @done
-- create 301 redirect based on config
+- create 301 redirect based on config @done
 - Default file if request is a directory @done
 Left to do:
 - Python scripts fixen
