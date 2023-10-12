@@ -17,7 +17,7 @@
 #include <iostream>
 
 #define READ_SIZE 1024 * 1024
-#define WRITE_SIZE 1024 * 100
+#define WRITE_SIZE 1024 * 16
 // #define WRITE_SIZE 1024 * 1024 * 16 is faster but doesn't have nice animation in browser
 
 #define READ 0
@@ -31,19 +31,18 @@
 ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 	_socketFd(socketFd),
 	_cgi(poll),
-	_bytesWritten(0),
 	_config(config),
 	_poll(poll),
 	_doneReading(false),
+	_doneWriting(true),
 	_pollHupSet(false),
 	_request(_cgi, _poll, _socketFd)
 {
-	this->resetState();
+	this->clear();
 }
 
 ClientHandler::~ClientHandler()
 {
-	// TODO: remove all poll events related to this?
 }
 
 bool	ClientHandler::isSocketFd( int fd )
@@ -221,7 +220,17 @@ static bool	allRequestDataRead( t_requestData& requestData )
 		return ( parseChunkEncoding(requestData) );
 	
 	// if the request is not chunk encoded we check if we have read everything according to the set content-length
-	return (requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength);
+	if (!(requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength))
+		return (false); // We have not read everything from this request
+
+	// We have read everything from the current request.
+	// Store the entire request inside the buffer and move all the other data into prevBuffer
+	auto extraDataIt = requestData.buffer.begin() + requestData.headerSize + requestData.contentLength; // Gets the offset where the data past the request is stored
+	
+	requestData.prevBuffer.clear();
+	requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
+	requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	return (true);
 }
 
 void	ClientHandler::readFromSocket()
@@ -255,13 +264,34 @@ void	ClientHandler::setHup( void )
 	_pollHupSet = true;
 }
 
-void	ClientHandler::resetState( void )
+void	ClientHandler::prepareNextRequest( void )
 {
 	_cgi.clear();
 	_response.clear();
-	bzero(&_requestData, sizeof(_requestData));
 	_requestData.buffer.clear();
 	_requestData.chunkedBuffer.clear();
+	_requestData.chunkSize = 0;
+	_requestData.movedHeaders = false;
+	_requestData.readHeaders = false;
+	_requestData.contentLengthSet = false;
+	_requestData.chunkedEncoded = false;
+	_requestData.headerSize = 0;
+	_requestData.contentLength = 0;
+	_requestData.totalBytesRead = _requestData.prevBuffer.size();
+	_doneWriting = true;
+	_doneReading = false;
+}
+
+void	ClientHandler::clear( void )
+{
+	_cgi.clear();
+	_response.clear();
+	_requestData.buffer.clear();
+	_requestData.chunkedBuffer.clear();
+	_requestData.prevBuffer.clear();
+	bzero(&_requestData, sizeof(_requestData));
+	_doneWriting = true;
+	_doneReading = false;
 }
 
 void	ClientHandler::endCgi()
@@ -276,15 +306,11 @@ void	ClientHandler::handleRead( int fd )
 {
 	if (_cgi.isEvent(fd)) {
 		_cgi.handleRead();
-
-		// if the CGI is done we want to start sending the  output back to the client
-		// if (_cgi.isDoneReading()) {
-		// 	_response = std::string(_cgi.getReadBuffer().data());
-		// 	_cgi.clear();
-		// 	_poll.addEvent(POLLOUT, _socketFd);
-		// }
 		return ;
 	}
+
+	if (!_doneWriting) // if we are already processing a request we keep the new data in the socket.
+		return ;
 
 	this->readFromSocket();
 
@@ -300,6 +326,7 @@ void	ClientHandler::handleRead( int fd )
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
 	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"));
+	_doneWriting = false;
 	// std::cout << "Response: " << std::endl;
 	// std::cout << _response << std::endl;
 }
@@ -329,8 +356,18 @@ void	ClientHandler::handleWrite( int fd )
 	}
 
 	std::cout << RED "Sent all data" RESET << std::endl;
-	// TODO: check if another request if lined up in the read buffer
-	// if there is still data left restart the request & parsing?
-	this->resetState();
-	_poll.removeEvent(_socketFd, POLLOUT);
+
+	// We have sent all data so we can prepare for the next request
+	this->prepareNextRequest();
+
+	// We move all the data that we might've read extra the previous time into the current buffer
+	_requestData.buffer.clear();
+	_requestData.buffer = _requestData.prevBuffer;
+
+	// We check if we already have fully read a new request we can keep the write event inside the poll check
+	// otherwise we need to remove it from the queue
+	if (allRequestDataRead(_requestData))
+		_doneWriting = false;
+	else
+		_poll.removeEvent(_socketFd, POLLOUT);
 }

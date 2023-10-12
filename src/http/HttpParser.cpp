@@ -23,7 +23,7 @@ bool isDirectory(const std::string& path) {
 
 void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 {
-    std::cout << "request_URI: " << _request_URI << std::endl;
+    // std::cout << "request_URI: " << _request_URI << std::endl;
     try {
         if (server.getLocation(_request_URI).getAllowGet() == false)
         {
@@ -34,7 +34,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     }
     if ( _request_URI == "/redirect" )
     {
-        std::cout << "redirect" << std::endl;
+        // std::cout << "redirect" << std::endl;
         response.setError( 301, "Moved Permanently" );
         response.setRedirect( server.getLocation("/redirect").getRedirect() );
     }
@@ -59,7 +59,7 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool&
     catch (std::exception &e){
     }
     //in case of file upload
-    std::cout << "content type: " << _content_type << std::endl;
+    // std::cout << "content type: " << _content_type << std::endl;
     if (_content_type == "multipart/form-data") {
         // You can now read or manipulate the file here if needed.
         try {
@@ -164,7 +164,6 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  */
 std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
 {
-    std::cout << "PARSE REQUEST AND GIVE RESPONSE" << std::endl;
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
 
@@ -185,11 +184,12 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         else // body line
             addLineToBody(line);
     }
+
     // printAll();
     if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py") {
         parseCgiRequest(response, server, isCgiRequest);
     }
-    if (_request_method == GET && pathExists(server.getRoot() +_request_URI)) {
+    else if (_request_method == GET && pathExists(server.getRoot() +_request_URI)) {
         parseGetRequest(response, server);
     } 
     else if (_request_method == POST && pathExists(server.getRoot() +_request_URI)) {
@@ -198,13 +198,14 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     else if (_request_method == DELETE) {
         parseDeleteRequest(response, server);
     }
-    else if (_request_method == GET || _request_method == POST){
+    else if (_request_method == GET || _request_method == POST) {
         // Handle non-existent path
         response.setError(404, "Not Found");
     }
-    if (!isCgiRequest) {
-        std::cout << "Adding socket out" << std::endl;
+
+    // if the request is not for the CGI we can write
+    // the response to the socket instead of waiting for the CGi to finish.
+    if (!isCgiRequest)
         _poll.addEvent(_socketFd, POLLOUT);
-    }
     return (response.buildResponse(server));
 }

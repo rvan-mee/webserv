@@ -21,6 +21,7 @@
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
+	std::vector<char>	prevBuffer;
 	std::vector<char>	chunkedBuffer;
 	int					chunkSize;
 	bool				movedHeaders;
@@ -37,16 +38,17 @@ class ClientHandler
 	private:
 		ClientHandler( void );
 
-		void readFromSocket( void );
+		void	readFromSocket( void );
+		void	prepareNextRequest( void );
 
 		int					_socketFd;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
 		std::string			_response;
-		int					_bytesWritten;
 		Config&				_config;
 		EventPoll&			_poll;
 		bool				_doneReading;
+		bool				_doneWriting;
 		bool				_pollHupSet;
 		HttpRequest			_request;
 
@@ -59,7 +61,7 @@ class ClientHandler
 		bool	isSocketFd( int fd );
 		void	handleRead( int fd );
 		void	handleWrite( int fd );
-		void	resetState( void );
+		void	clear( void );
 		void	setHup( void );
 		void	endCgi( void );
 };

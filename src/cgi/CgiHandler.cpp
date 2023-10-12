@@ -101,46 +101,21 @@ bool	CgiHandler::isDoneReading()
 void	CgiHandler::handleRead( void )
 {
 	std::vector<char>	newRead(READ_SIZE);
-	int	currentBytesRead;
+	int					currentBytesRead;
 
-	// if (_cgiOutput.size() < _cgiOutput.capacity() + READ_SIZE)
-	// 	_cgiOutput.resize(_cgiOutput.size() * 2);
 	currentBytesRead = read(_pipeRead, newRead.data(), READ_SIZE);
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
 	_cgiOutput.insert(_cgiOutput.end(), newRead.begin(), newRead.begin() + currentBytesRead);
 	_bytesRead += currentBytesRead;
-
-	// std::cout << "Current last output: " << _cgiOutput[_bytesRead] << std::endl;
-	// if (_cgiOutput[_bytesRead - 1] == '\0') {
-	// 	std::cout << "Read everything from CGI" << std::endl;
-	// 	std::cout << "output: " << _cgiOutput.data() << std::endl;
-	// 	_cgiOutput.shrink_to_fit();
-	// 	_poll.removeEvent(_pipeRead, POLLIN);
-	// 	close(_pipeRead);
-	// 	_pipeRead = -1;
-	// 	if (_forkPid != -1)  {
-	// 	std::cout << "Killing child handle read" << std::endl;
-	// 		kill(_forkPid, SIGKILL);
-	// 	}// just some extra security so we for sure dont kill all the programs on macOS
-	// 	_forkPid = -1;
-	// 	_doneReading = true;
-	// }
 }
 
 void	CgiHandler::end()
 {
 	// std::cout << "Read everything from CGI" << std::endl;
 	_cgiOutput.push_back('\0');
-	std::cout << "output: " << _cgiOutput.data() << std::endl;
 	_cgiOutput.shrink_to_fit();
-	// _poll.removeEvent(_pipeRead, POLLIN);
-	// close(_pipeRead);
-	// _pipeRead = -1;
-	// if (_forkPid != -1) // just some extra security so we for sure dont kill all the programs on macOS
-	// 	kill(_forkPid, SIGKILL);
-	// _forkPid = -1;
 }
 
 // First we write all of our data to the CGI pipe
@@ -159,8 +134,6 @@ void	CgiHandler::handleWrite( void )
 		throw ( std::runtime_error("Failed to send response to client") );
 
 	_cgiInput.erase(_cgiInput.begin(), _cgiInput.begin() + bytesSent);
-	// _cgiInput.erase(0, bytesSent);
-
 
 	if (_cgiInput.size() == 0) {
 		// wrote everything to pipe start reading the output
@@ -189,7 +162,6 @@ void	CgiHandler::handleWrite( void )
  */
 void	CgiHandler::startPythonCgi( std::string script )
 {
-	std::cout << "STARTING CGI!!" << std::endl;
 	this->clear();
 	int pipeToCgi[2];
 	int pipeFromCgi[2];

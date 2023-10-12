@@ -149,29 +149,36 @@ void	HttpServer::initServer( Config &config )
 			try {
 				/* If the client had disconnected, close the connection */
 				if ( events[i].revents & POLLHUP ) {
-					if (_eventList[eventIndex]->isSocketFd(eventFd))
+					if (_eventList[eventIndex]->isSocketFd(eventFd)) {
 						this->removeClient(eventIndex, eventFd);
-					else {
+					}
+					else { // the POLLHUP is connected to a cgi pipe
+						std::cout << RED "Ending CGI" RESET << std::endl;
 						_eventList[eventIndex]->endCgi();
-						// the POLLHUP is connected to a cgi pipe
 					}
 				}
+
 				if ( events[i].revents & POLLERR ) {
+					// TODO: idk?
 					std::cout << "POLLERR CAUGHT" << std::endl;
 				}
+
 				if ( events[i].revents & POLLIN ) {
 					std::cout << GREEN "Handling read event" RESET << std::endl;
 					if (events[i].revents & POLLRDHUP)
 						_eventList[eventIndex]->setHup();
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
+
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
 					this->removeClient(eventIndex, eventFd);
 				}
+
 				if ( events[i].revents & POLLOUT ) {
 					std::cout << BLUE "Handling write event" RESET << std::endl;
 					_eventList[eventIndex]->handleWrite(eventFd);
 				}
+
 			} catch (const std::exception& e) {
 				std::cerr << e.what() << '\n';
 			}
