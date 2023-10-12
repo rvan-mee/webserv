@@ -33,7 +33,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     }
     if ( _request_URI == "/redirect" )
     {
-        response.setRedirect( server.getLocation("/redirect").getRedirect() );
+        response.setRedirect( server.getRedirect() );
         return (response.setError( 301, "Moved Permanently" ));
     }
     //GET /favicon.ico HTTP/1.1
