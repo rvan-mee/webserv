@@ -18,7 +18,6 @@
 #include <map>
 #include <stdexcept>
 #include <regex>
-
 #include <iostream>
 
 /******************************
@@ -36,7 +35,8 @@ Server::Server( void ) :
     index( std::vector<std::string>() ),
     accessLog( std::string() ),
     errorLog( std::string() ),
-    uploadsDir( std::string() )
+    uploadsDir( std::string() ),
+    redirect( std::string() )
 {
 }
 
@@ -313,6 +313,26 @@ void	Server::parseErrorLog( std::vector<std::string> &tokens )
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
+/**
+ * @brief Parse the redirect instruction in a location block.
+ * 
+ */
+void    Server::parseRedirect( std::vector<std::string> &tokens )
+{
+    tokens.erase( tokens.begin() ); // Remove the 'redirect' token.
+
+    for ( int i = 0; tokens[0] != ";"; i++ )
+    {
+        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+            throw ( std::runtime_error( "Invalid 'redirect' instruction in config file" ) );
+        if ( i >= 1 )
+            throw ( std::runtime_error( "Error: Multiple 'redirect' instructions in location block." ) );
+        this->redirect = tokens[0];
+        tokens.erase( tokens.begin() );
+    }
+    tokens.erase( tokens.begin() ); // Remove the ';' token.
+}
+
 /******************************
 * Getters
 *****************************/
@@ -449,4 +469,12 @@ std::string Server::getErrorLog( void ) const
 std::vector<std::string> Server::getIndex( void ) const
 {
     return ( this->index );
+}
+
+/**
+ * @brief Returns the redirect of the given location block.
+ */
+std::string Server::getRedirect( void ) const
+{
+    return ( this->redirect );
 }
