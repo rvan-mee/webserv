@@ -32,6 +32,7 @@ private:
 	std::string								accessLog;
 	std::string								errorLog;
     std::string                             uploadsDir;
+    std::string						        redirect;
 
 public:
 
@@ -56,6 +57,7 @@ public:
         void	parseAccessLog( std::vector<std::string> &tokens );
         void	parseErrorLog( std::vector<std::string> &tokens );
         void    parseUploadsDir( std::vector<std::string> &tokens );
+        void    parseRedirect( std::vector<std::string> &tokens );
 
 	/******************************
 	* Getters
@@ -71,7 +73,7 @@ public:
 		std::string			        getErrorLog( void ) const;
         std::vector<std::string>	getIndex( void ) const;
         std::string                 getUploadsDir( void ) const;
+        std::string                 getRedirect( void ) const;
 };
-
 
 #endif
