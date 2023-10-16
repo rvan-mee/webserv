@@ -48,30 +48,26 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 }
 
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, EventPoll& poll)
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest)
 {
     try {
         if (server.getLocation(_request_URI).getAllowPost() == false)
-        {
             return (response.setError(405, "Method Not Allowed"));
-        }
     }
     catch (std::exception &e){
     }
     //in case of file upload
-    std::cout << "content type: " << _content_type << std::endl;
-    if (_content_type == "multipart/form-data")
-    {
-        CgiHandler cgiHandler = CgiHandler( poll );
+    // std::cout << "content type: " << _content_type << std::endl;
+    if (_content_type == "multipart/form-data") {
         // You can now read or manipulate the file here if needed.
         try {
             //give body input to python script
-        cgiHandler.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
-        std::cout << "file excecuted" << std::endl;
+            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+            isCgiRequest = true;
         }
         catch (std::exception &e) {
-        std::cout << "here" << std::endl;
-        std::cerr << e.what() << std::endl;
+            std::cerr << e.what() << std::endl;
+            return (response.setError(505, "Internal Server Error"));
         }
         return ;
     }
@@ -81,11 +77,14 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, Event
 
 void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
 {
-    if (!pathExists(server.getRoot() + _request_URI))
+    if (!pathExists(server.getRoot() + _request_URI)) {
+        _poll.addEvent(_socketFd, POLLOUT);
         return (response.setError(204, "No Content"));
+    }
      try {
         if (server.getLocation(_request_URI).getAllowDelete() == false)
         {
+            _poll.addEvent(_socketFd, POLLOUT);
             return (response.setError(405, "Method Not Allowed"));
         }
     }
@@ -102,7 +101,7 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
  * 
  * @param line  request line
  */
-void		HttpRequest::isRequestLine(std::string line, HttpResponse &response, Server server)
+void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
 {
     std::string s;
     std::stringstream ss(line);
@@ -161,20 +160,21 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server, EventPoll& poll)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
 
     std::string line;
     HttpResponse response;
-    bool emptyLineFound = false;
-	std::cout << "Request:" << std::endl;
+    bool    emptyLineFound = false;
+    bool    isCgiRequest = false;
+	// std::cout << "Request:" << std::endl;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        std::cout << line << std::endl;
+        // std::cout << line << std::endl;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
-            isRequestLine(line, response, server);
+            isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line
@@ -182,23 +182,28 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         else // body line
             addLineToBody(line);
     }
+
     // printAll();
-    if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py")
-    {
-        parseCgiRequest(response, server, poll);
+    if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py") {
+        parseCgiRequest(response, server, isCgiRequest);
     }
     else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(server.getRoot() +_request_URI))) {
         parseGetRequest(response, server);
     } 
     else if (_request_method == POST && pathExists(server.getRoot() +_request_URI)) {
-        parsePostRequest(response, server, poll);
+        parsePostRequest(response, server, isCgiRequest);
     }
     else if (_request_method == DELETE) {
         parseDeleteRequest(response, server);
     }
-    else if (_request_method == GET || _request_method == POST){
+    else if (_request_method == GET || _request_method == POST) {
         // Handle non-existent path
         response.setError(404, "Not Found");
     }
+
+    // if the request is not for the CGI we can write
+    // the response to the socket instead of waiting for the CGi to finish.
+    if (!isCgiRequest)
+        _poll.addEvent(_socketFd, POLLOUT);
     return (response.buildResponse(server));
 }
