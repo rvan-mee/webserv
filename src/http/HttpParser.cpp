@@ -133,7 +133,7 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
  * 
  * @param line header line
  */
-void		HttpRequest::isHeader(std::string line, HttpResponse &response)
+void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config config)
 {
     std::string s;
     std::stringstream ss(line);
@@ -152,7 +152,18 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
     if (v[0] == "Content-Type")
         setContentType(v[1]);
     if (v[0] == "Host")
-        setHost(v[1]);
+    {
+        try
+        {
+            config.getServer(v[1]); //if server isn't found, default server will be the host and a 404 response will be returned
+            _host = v[1];
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            return (response.setError(400, "Bad Request"));
+        }
+    }
 }
 
 /**
@@ -160,7 +171,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Config config)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -178,23 +189,23 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line
-            isHeader(line, response);
+            isHeader(line, response, config);
         else // body line
             addLineToBody(line);
     }
 
     // printAll();
     if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py") {
-        parseCgiRequest(response, server, isCgiRequest);
+        parseCgiRequest(response, config.getServer(_host), isCgiRequest);
     }
-    else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(server.getRoot() +_request_URI))) {
-        parseGetRequest(response, server);
+    else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(config.getServer(_host).getRoot() +_request_URI))) {
+        parseGetRequest(response, config.getServer(_host));
     } 
-    else if (_request_method == POST && pathExists(server.getRoot() +_request_URI)) {
-        parsePostRequest(response, server, isCgiRequest);
+    else if (_request_method == POST && pathExists(config.getServer(_host).getRoot() +_request_URI)) {
+        parsePostRequest(response, config.getServer(_host), isCgiRequest);
     }
     else if (_request_method == DELETE) {
-        parseDeleteRequest(response, server);
+        parseDeleteRequest(response, config.getServer(_host));
     }
     else if (_request_method == GET || _request_method == POST) {
         // Handle non-existent path
@@ -205,5 +216,5 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     // the response to the socket instead of waiting for the CGi to finish.
     if (!isCgiRequest)
         _poll.addEvent(_socketFd, POLLOUT);
-    return (response.buildResponse(server));
+    return (response.buildResponse(config.getServer(_host)));
 }

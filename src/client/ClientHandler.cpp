@@ -325,7 +325,7 @@ void	ClientHandler::handleRead( int fd )
 
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
-	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"));
+	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config);
 	_doneWriting = false;
 	// std::cout << "Response: " << std::endl;
 	// std::cout << _response << std::endl;
