@@ -370,7 +370,6 @@ Location  &Server::getLocation( std::string locationUrl )
             urls = it->getUrls();
             for ( it2 = urls.begin(); it2 != urls.end(); it2++ )
             {
-                std::cout << "it2 " << *it2 << std::endl; 
                 if ( *it2 == temp )
                     return ( *it );
             }
