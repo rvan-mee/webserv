@@ -50,15 +50,22 @@ class ClientHandler
 		bool				_doneReading;
 		bool				_doneWriting;
 		bool				_pollHupSet;
+		bool				_timeOutSet;
 		HttpRequest			_request;
 
 	public:
 		ClientHandler( int socketFd, EventPoll& poll, Config& config );
 		~ClientHandler();
 
+		int		getSocketFd( void );
+		bool	isDoneWriting( void );
+		bool	isTimedOut( void );
+		void	setTimeOut( bool timeOut );
 		bool	doneWithRequest( void );
 		bool	isEvent( int fd );
 		bool	isSocketFd( int fd );
+
+		void	setTimeOutResponse( void );
 		void	handleRead( int fd );
 		void	handleWrite( int fd );
 		void	clear( void );

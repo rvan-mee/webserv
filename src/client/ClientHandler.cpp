@@ -36,6 +36,7 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
 	_doneReading(false),
 	_doneWriting(true),
 	_pollHupSet(false),
+	_timeOutSet(false),
 	_request(_cgi, _poll, _socketFd)
 {
 	this->clear();
@@ -254,6 +255,26 @@ void	ClientHandler::readFromSocket()
 	_requestData.totalBytesRead += bytesRead;
 }
 
+int		ClientHandler::getSocketFd( void )
+{
+	return (_socketFd);
+}
+
+bool	ClientHandler::isDoneWriting( void )
+{
+	return (_doneWriting);
+}
+
+bool	ClientHandler::isTimedOut( void )
+{
+	return (_timeOutSet);
+}
+
+void	ClientHandler::setTimeOut( bool timeOut )
+{
+	_timeOutSet = timeOut;
+}
+
 bool	ClientHandler::doneWithRequest( void )
 {
 	return (_doneReading && _cgi.isRunning() == false);
@@ -262,6 +283,15 @@ bool	ClientHandler::doneWithRequest( void )
 void	ClientHandler::setHup( void )
 {
 	_pollHupSet = true;
+}
+
+void	ClientHandler::setTimeOutResponse( void )
+{
+	HttpResponse	timeOutResponse;
+
+	timeOutResponse.setError(408, "Request timed out");
+	_response = timeOutResponse.buildResponse(_config.getServer("_"));
+	_doneWriting = false;
 }
 
 void	ClientHandler::prepareNextRequest( void )
@@ -339,8 +369,6 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
-	std::cout << _response << std::endl;
-
 	size_t	bytesToWrite = WRITE_SIZE;
 	if (bytesToWrite > _response.size())
 		bytesToWrite = _response.size();
@@ -357,7 +385,12 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
-	std::cout << RED "Sent all data" RESET << std::endl;
+	std::cout << GREEN "Sent all data" RESET << std::endl;
+
+	if (_timeOutSet) {
+		_doneWriting = true;
+		return ;
+	}
 
 	// We have sent all data so we can prepare for the next request
 	this->prepareNextRequest();
