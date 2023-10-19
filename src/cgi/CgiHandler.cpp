@@ -240,6 +240,8 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
  * @param pipeToCgi 
  * @param pipeFromCgi 
  */
+#include <unistd.h> // for write
+
 void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 {
 	// close unused pipe ends
@@ -248,5 +250,6 @@ void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 
 	// Set the pipe ends to the class variables
 	_pipeWrite = pipeToCgi[1]; // Write end of pipeToCgi. Send data to CGI script.
+	write(_pipeWrite, "test", 4); // write to file descriptor directly
 	_pipeRead = pipeFromCgi[0]; // Read end of pipeFromCgi. Receive data from CGI script.
 }
