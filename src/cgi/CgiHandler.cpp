@@ -22,6 +22,9 @@
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
 
+#define RESET   "\033[0m"
+#define GREEN   "\033[32m"      /* Green */
+
 CgiHandler::CgiHandler( EventPoll& poll ) :
 	_poll(poll),
 	_pipeRead(-1),
@@ -188,6 +191,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 	fcntl(pipeToCgi[1], F_SETFL, O_NONBLOCK);
 
 	// Fork process. Throws runtime_error on failure.
+	std::cout << GREEN "Starting CGI" RESET << std::endl;
 	_forkPid = fork();
 	if ( _forkPid == -1 )
 	{

@@ -78,10 +78,10 @@ void HttpServer::removeClient(int eventIndex)
 
 	close(socketFd);
 	_eventList[eventIndex]->clear();
+	delete _eventList[eventIndex];
 	_eventList.erase(_eventList.begin() + eventIndex);
 	_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
 	_poll.removeEvent(socketFd, POLLOUT);
-	delete _eventList[eventIndex];
 }
 
 /**
@@ -112,11 +112,12 @@ void	HttpServer::initServer( Config &config )
 	int		ready;
 	while ( true )
 	{
+		// usleep(500);
 		_poll.updateEventList();
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
-		_poll.printList();
+		// _poll.printList();
 
 		ready = poll(events, numEvents, REQUEST_TIMEOUT);
 		if (ready < 0) {
@@ -132,7 +133,6 @@ void	HttpServer::initServer( Config &config )
 					// The client has already been set to 'timed out' but has not been able to send
 					// a response within a second timeout. We will just remove the client and close the connection
 					// since we cannot communicate with the client.
-					std::cout << "Client has set timeout, removing them now" << std::endl;
 					this->removeClient(i);
 					i--;
 				} else {
@@ -140,7 +140,11 @@ void	HttpServer::initServer( Config &config )
 					_eventList[i]->setTimeOut(true);
 					_eventList[i]->clear();
 					_eventList[i]->setTimeOutResponse();
-					_poll.addEvent(_eventList[i]->getSocketFd(), POLLOUT);
+
+					int	socketFd = _eventList[i]->getSocketFd();
+					_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
+					_poll.removeEvent(socketFd, POLLOUT);
+					_poll.addEvent(_eventList[i]->getSocketFd(), POLLOUT );
 				}
 				// after having written everything remove the client from the eventList
 			}
@@ -214,9 +218,7 @@ void	HttpServer::initServer( Config &config )
 
 					if (_eventList[eventIndex]->isTimedOut() && _eventList[eventIndex]->isDoneWriting()) {
 						std::cout << RED "Removing timed out client" RESET << std::endl;
-						std::cout << "Size before " << _eventList.size()<< std::endl;
 						this->removeClient(eventIndex);
-						std::cout << "Size after " << _eventList.size()<< std::endl;
 					}
 				}
 

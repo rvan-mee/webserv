@@ -289,7 +289,7 @@ void	ClientHandler::setTimeOutResponse( void )
 {
 	HttpResponse	timeOutResponse;
 
-	timeOutResponse.setError(408, "Request timed out");
+	timeOutResponse.setError(504, "Gateway Timeout");
 	_response = timeOutResponse.buildResponse(_config.getServer("_"));
 	_doneWriting = false;
 }
@@ -339,7 +339,7 @@ void	ClientHandler::handleRead( int fd )
 		return ;
 	}
 
-	if (!_doneWriting) // if we are already processing a request we keep the new data in the socket.
+	if (!_doneWriting || _cgi.isRunning()) // if we are already processing a request we keep the new data in the socket.
 		return ;
 
 	this->readFromSocket();
