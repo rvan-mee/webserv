@@ -229,7 +229,7 @@ static bool	allRequestDataRead( t_requestData& requestData )
 	
 	requestData.prevBuffer.clear();
 	requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
-	requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	// requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
 	return (true);
 }
 

@@ -12,6 +12,6 @@
 - Default file if request is a directory @done
 Left to do:
 - Python scripts fixen
-- know which server you are on
+- know which server you are on @done
 //-exec set follow-fork-mode child
 curl --resolve example.com:8070:127.0.0.1 http://example.com:8070 

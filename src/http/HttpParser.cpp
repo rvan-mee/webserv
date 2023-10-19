@@ -180,10 +180,10 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     HttpResponse response;
     bool    emptyLineFound = false;
     bool    isCgiRequest = false;
-	// std::cout << "Request:" << std::endl;
+	std::cout << "Request:" << std::endl;
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        // std::cout << line << std::endl;
+        std::cout << line << std::endl;
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
