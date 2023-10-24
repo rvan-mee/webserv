@@ -297,6 +297,12 @@ std::string HttpResponse::buildResponse( Server server)
 	str += " ";
 	str += _reason_phrase;
 	str += "\r\n";
+	if (!_redirect.empty())
+	{
+		str += "Location: ";
+		str += _redirect;
+		str += "\r\n";
+	}
 	str += "Content-Type: ";
 	str += _content_type;
 	if (!server.getServerNames()[0].empty())
