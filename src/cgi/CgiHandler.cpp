@@ -44,7 +44,6 @@ CgiHandler::~CgiHandler()
 		close(_pipeWrite);
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
 		kill(_forkPid, SIGKILL);
-		std::cout << "Killing child deconstructor" << std::endl;
 	}
 	_poll.removeEvent(_pipeWrite, POLLOUT);
 	_poll.removeEvent(_pipeRead, POLLIN);
@@ -64,8 +63,8 @@ void	CgiHandler::clear( void )
 	}
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
 		kill(_forkPid, SIGKILL);
-		_forkPid = -1;
 	}
+	_forkPid = -1;
 	_cgiInput.clear();
 	_cgiOutput.clear();
 	_bytesRead = 0;
@@ -172,7 +171,8 @@ void	CgiHandler::startPythonCgi( std::string script )
 	int pipeFromCgi[2];
 	
 	// temp
-	char *args[] = { "python", const_cast<char*>(script.c_str()), NULL };
+	char	python[] = "python"; // execve cannot take a char const * char * so we have to do a lil workaround
+	char	*args[] = { python, const_cast<char*>(script.c_str()), NULL };
 
 	// Init pipes. Throws runtime_error on failure.
 	if ( pipe( pipeToCgi ) == -1)

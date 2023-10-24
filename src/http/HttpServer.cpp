@@ -137,9 +137,10 @@ void	HttpServer::initServer( Config &config )
 					i--;
 				} else {
 					// The client has timed out, we will send back a 408 response
-					_eventList[i]->setTimeOut(true);
+					_eventList[i]->setTimeOut();
+					bool	cgiRunning = _eventList[i]->isCgiRunning();
 					_eventList[i]->clear();
-					_eventList[i]->setTimeOutResponse();
+					_eventList[i]->setTimeOutResponse(cgiRunning);
 
 					int	socketFd = _eventList[i]->getSocketFd();
 					_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
@@ -169,6 +170,8 @@ void	HttpServer::initServer( Config &config )
 				/* Add the client socket to the poll list */
 				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
+
+				std::cout << GREEN "Accepted a new client" RESET << std::endl;
 				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
 				_eventList.push_back(newEvent);
 				continue ;
@@ -198,12 +201,16 @@ void	HttpServer::initServer( Config &config )
 				}
 
 				if ( events[i].revents & POLLIN ) {
-					std::cout << BLUE "Handling read event" RESET << std::endl;
+					// if the hangup is set but the CGI is running we will keep getting read requests on the socket
+					// to prevent the terminal from spammed this if statement is here :)
+					if (!_eventList[eventIndex]->getHangup()) 
+						std::cout << BLUE "Handling read event" RESET << std::endl;
 
 					// The client wants to disconnect but there might still be data
 					// left in the socket that is ready to be read.
-					if (events[i].revents & POLLRDHUP)
+					if (events[i].revents & POLLRDHUP) {
 						_eventList[eventIndex]->setHup();
+					}
 
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
