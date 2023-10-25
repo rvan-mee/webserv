@@ -30,6 +30,8 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
+#define REQUEST_TIMEOUT 5000
+
 
 /******************************
 * Constructors & Destructors
@@ -69,14 +71,17 @@ bool	HttpServer::isServerSocket( int fd )
 	return ( false );
 }
 
-void HttpServer::removeClient(int eventIndex, int eventFd)
+void HttpServer::removeClient(int eventIndex)
 {
 	std::cout << RED "Closing client connection" RESET << std::endl;
+	const int socketFd = _eventList[eventIndex]->getSocketFd();
+
+	close(socketFd);
+	_eventList[eventIndex]->clear();
 	delete _eventList[eventIndex];
 	_eventList.erase(_eventList.begin() + eventIndex);
-	_poll.removeEvent(eventFd, POLLIN | POLLRDHUP);
-	_poll.removeEvent(eventFd, POLLOUT);
-	close(eventFd);
+	_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
+	_poll.removeEvent(socketFd, POLLOUT);
 }
 
 /**
@@ -107,14 +112,44 @@ void	HttpServer::initServer( Config &config )
 	int		ready;
 	while ( true )
 	{
+		// usleep(500);
 		_poll.updateEventList();
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
-		ready = poll(events, numEvents, -1);
+		// _poll.printList();
+
+		ready = poll(events, numEvents, REQUEST_TIMEOUT);
 		if (ready < 0) {
 			closeServerSockets();
 			throw ( std::runtime_error( "Failed to wait for events" ) );
+		}
+
+		if (ready == 0) {
+			for (size_t i = 0; i < _eventList.size(); i++) {
+				std::cout << RED "Request or connection timed out" RESET << std::endl;
+				// for every client we need to send a timeout response and close the socket?
+				if (_eventList[i]->isTimedOut()) {
+					// The client has already been set to 'timed out' but has not been able to send
+					// a response within a second timeout. We will just remove the client and close the connection
+					// since we cannot communicate with the client.
+					this->removeClient(i);
+					i--;
+				} else {
+					// The client has timed out, we will send back a 408 response
+					_eventList[i]->setTimeOut();
+					bool	cgiRunning = _eventList[i]->isCgiRunning();
+					_eventList[i]->clear();
+					_eventList[i]->setTimeOutResponse(cgiRunning);
+
+					int	socketFd = _eventList[i]->getSocketFd();
+					_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
+					_poll.removeEvent(socketFd, POLLOUT);
+					_poll.addEvent(_eventList[i]->getSocketFd(), POLLOUT );
+				}
+				// after having written everything remove the client from the eventList
+			}
+			continue ;
 		}
 
 		for (size_t i = 0; i < numEvents; i++) {
@@ -135,6 +170,8 @@ void	HttpServer::initServer( Config &config )
 				/* Add the client socket to the poll list */
 				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
+
+				std::cout << GREEN "Accepted a new client" RESET << std::endl;
 				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
 				_eventList.push_back(newEvent);
 				continue ;
@@ -150,7 +187,7 @@ void	HttpServer::initServer( Config &config )
 				/* If the client had disconnected, close the connection */
 				if ( events[i].revents & POLLHUP ) {
 					if (_eventList[eventIndex]->isSocketFd(eventFd)) {
-						this->removeClient(eventIndex, eventFd);
+						this->removeClient(eventIndex);
 					}
 					else { // the POLLHUP is connected to a cgi pipe
 						std::cout << RED "Ending CGI" RESET << std::endl;
@@ -164,19 +201,32 @@ void	HttpServer::initServer( Config &config )
 				}
 
 				if ( events[i].revents & POLLIN ) {
-					std::cout << GREEN "Handling read event" RESET << std::endl;
-					if (events[i].revents & POLLRDHUP)
+					// if the hangup is set but the CGI is running we will keep getting read requests on the socket
+					// to prevent the terminal from spammed this if statement is here :)
+					if (!_eventList[eventIndex]->getHangup()) 
+						std::cout << BLUE "Handling read event" RESET << std::endl;
+
+					// The client wants to disconnect but there might still be data
+					// left in the socket that is ready to be read.
+					if (events[i].revents & POLLRDHUP) {
 						_eventList[eventIndex]->setHup();
+					}
+
 					_eventList[eventIndex]->handleRead(eventFd);
 				}
 
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
-					this->removeClient(eventIndex, eventFd);
+					this->removeClient(eventIndex);
 				}
 
 				if ( events[i].revents & POLLOUT ) {
 					std::cout << BLUE "Handling write event" RESET << std::endl;
 					_eventList[eventIndex]->handleWrite(eventFd);
+
+					if (_eventList[eventIndex]->isTimedOut() && _eventList[eventIndex]->isDoneWriting()) {
+						std::cout << RED "Removing timed out client" RESET << std::endl;
+						this->removeClient(eventIndex);
+					}
 				}
 
 			} catch (const std::exception& e) {

@@ -29,7 +29,7 @@ class HttpServer
 	EventPoll						_poll;
 
 	int		getEventIndex(int fd);
-	void	removeClient(int eventIndex, int eventFd);
+	void	removeClient(int eventIndex);
 
   public:
 	/******************************
