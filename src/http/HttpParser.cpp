@@ -48,7 +48,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 }
 
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest)
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request)
 {
     try {
         if (server.getLocation(_request_URI).getAllowPost() == false)
@@ -62,7 +62,7 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool&
         // You can now read or manipulate the file here if needed.
         try {
             //give body input to python script
-            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py", request);
             isCgiRequest = true;
         }
         catch (std::exception &e) {
@@ -180,10 +180,14 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     HttpResponse response;
     bool    emptyLineFound = false;
     bool    isCgiRequest = false;
+    std::string request;
 	std::cout << "Request:" << std::endl;
+
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
         std::cout << line << std::endl;
+        request += line;
+        request += "\n";
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
@@ -196,13 +200,13 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
 
     // printAll();
     if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py") {
-        parseCgiRequest(response, config.getServer(_host), isCgiRequest);
+        parseCgiRequest(response, config.getServer(_host), isCgiRequest, request);
     }
     else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(config.getServer(_host).getRoot() +_request_URI))) {
         parseGetRequest(response, config.getServer(_host));
     } 
     else if (_request_method == POST && pathExists(config.getServer(_host).getRoot() +_request_URI)) {
-        parsePostRequest(response, config.getServer(_host), isCgiRequest);
+        parsePostRequest(response, config.getServer(_host), isCgiRequest, request);
     }
     else if (_request_method == DELETE) {
         parseDeleteRequest(response, config.getServer(_host));

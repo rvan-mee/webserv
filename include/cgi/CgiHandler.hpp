@@ -25,7 +25,7 @@ class CgiHandler
 
 		void	parseCgiOutput( void );
 		void	childInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
-		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
+		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2], std::string request );
 
 		EventPoll&			_poll;
 		int					_pipeRead;
@@ -52,7 +52,7 @@ class CgiHandler
 		void	clear( void );
 		void	end( void );
 
-		void	startPythonCgi( std::string script );
+		void	startPythonCgi( std::string script, std::string request );
 };
 
 #endif

@@ -45,9 +45,9 @@ class HttpRequest
 		void				setHost(std::string host);
 		void				addLineToBody(std::string line);
 		void				printAll();
-		void				parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest);
+		void				parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request);
 		void				parseGetRequest(HttpResponse &response, Server server);
-		void				parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest);
+		void				parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request);
 		void				parseDeleteRequest(HttpResponse &response, Server server);
 	private:
 		HttpRequest();

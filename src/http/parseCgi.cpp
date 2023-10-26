@@ -2,7 +2,7 @@
 #include <Server.hpp>
 #include <EventPoll.hpp>
 
-void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest)
+void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request)
 {
     if (_request_method == 0 || _request_method == 1)
     {
@@ -23,7 +23,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             try {
 
                 // _cgi.setWriteBuffer(); // TODO: if you want to give the CGI some info to work with 
-                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py", request);
                 isCgiRequest = true;
                 
             }
