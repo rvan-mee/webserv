@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 import os
+import time
+
+while True:
+    time.sleep(1)
 import sys
 
 # Define the directory where you want to store uploaded files
