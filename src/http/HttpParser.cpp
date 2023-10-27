@@ -24,12 +24,12 @@ bool isDirectory(const std::string& path) {
 void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 {
     try {
-        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowGet() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowGet() == 0)
         {
             return (response.setError(405, "Method Not Allowed"));
         }
     }
-    catch (std::exception &e){
+    catch (std::exception &e){ 
     }
     if ( _request_URI == "/redirect" )
     {
@@ -45,6 +45,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     }
     else if (_request_URI != "/")
         return (response.buildBodyFile(server.getRoot() + _request_URI));
+    response.buildResponse(server);
 }
 
 
