@@ -73,7 +73,7 @@ bool	HttpServer::isServerSocket( int fd )
 
 void HttpServer::removeClient(int eventIndex)
 {
-	std::cout << RED "Closing client connection" RESET << std::endl;
+	std::cout << RED "Closing client connection" RESET << "\n";
 	const int socketFd = _eventList[eventIndex]->getSocketFd();
 
 	close(socketFd);
@@ -117,7 +117,7 @@ void	HttpServer::initServer( Config &config )
 		pollfd*	events = _poll.getEvents().data();
 		size_t	numEvents = _poll.getEvents().size();
 
-		// _poll.printList();
+		// _poll.printList()
 
 		ready = poll(events, numEvents, REQUEST_TIMEOUT);
 		if (ready < 0) {
@@ -127,7 +127,7 @@ void	HttpServer::initServer( Config &config )
 
 		if (ready == 0) {
 			for (size_t i = 0; i < _eventList.size(); i++) {
-				std::cout << RED "Request or connection timed out" RESET << std::endl;
+				std::cout << RED "Request or connection timed out" RESET "\n";
 				// for every client we need to send a timeout response and close the socket?
 				if (_eventList[i]->isTimedOut()) {
 					// The client has already been set to 'timed out' but has not been able to send
@@ -171,7 +171,7 @@ void	HttpServer::initServer( Config &config )
 				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
 
-				std::cout << GREEN "Accepted a new client" RESET << std::endl;
+				std::cout << GREEN "Accepted a new client" RESET "\n";
 				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
 				_eventList.push_back(newEvent);
 				continue ;
@@ -190,21 +190,22 @@ void	HttpServer::initServer( Config &config )
 						this->removeClient(eventIndex);
 					}
 					else { // the POLLHUP is connected to a cgi pipe
-						std::cout << RED "Ending CGI" RESET << std::endl;
+						std::cout << RED "Ending CGI" RESET "\n";
 						_eventList[eventIndex]->endCgi();
 					}
+					continue ;
 				}
 
 				if ( events[i].revents & POLLERR ) {
-					// TODO: idk?
-					std::cout << "POLLERR CAUGHT" << std::endl;
+					std::cout << "POLLERR CAUGHT\n";
+					continue ;
 				}
 
 				if ( events[i].revents & POLLIN ) {
 					// if the hangup is set but the CGI is running we will keep getting read requests on the socket
 					// to prevent the terminal from spammed this if statement is here :)
 					if (!_eventList[eventIndex]->getHangup()) 
-						std::cout << BLUE "Handling read event" RESET << std::endl;
+						std::cout << BLUE "Handling read event" RESET "\n";
 
 					// The client wants to disconnect but there might still be data
 					// left in the socket that is ready to be read.
@@ -212,7 +213,15 @@ void	HttpServer::initServer( Config &config )
 						_eventList[eventIndex]->setHup();
 					}
 
-					_eventList[eventIndex]->handleRead(eventFd);
+					try {
+						_eventList[eventIndex]->handleRead(eventFd);
+					}
+					catch(const std::exception& e) {
+						std::cerr << e.what() << '\n';
+						this->removeClient(eventIndex);
+						continue ;
+					}
+					
 				}
 
 				if ( events[i].revents & POLLRDHUP && _eventList[eventIndex]->doneWithRequest()) {
@@ -220,11 +229,11 @@ void	HttpServer::initServer( Config &config )
 				}
 
 				if ( events[i].revents & POLLOUT ) {
-					std::cout << BLUE "Handling write event" RESET << std::endl;
+					std::cout << BLUE "Handling write event" RESET "\n";
 					_eventList[eventIndex]->handleWrite(eventFd);
 
 					if (_eventList[eventIndex]->isTimedOut() && _eventList[eventIndex]->isDoneWriting()) {
-						std::cout << RED "Removing timed out client" RESET << std::endl;
+						std::cout << RED "Removing timed out client" RESET "\n";
 						this->removeClient(eventIndex);
 					}
 				}
@@ -324,7 +333,6 @@ void	HttpServer::bindSockets( void )
 		/* Bind socket to port. If it fails, throw an error */
 		if ( bind( _serverSockets[i], ( struct sockaddr * )&address, sizeof( address ) ) < 0 ) {
 			closeServerSockets();
-			std::cerr << strerror(errno) << std::endl;
 			throw ( std::runtime_error( "Failed to bind socket to port" ) );
 		}
 	}

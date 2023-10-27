@@ -13,7 +13,7 @@
 #ifndef HTTPSERVER_HPP
 # define HTTPSERVER_HPP
 
-# define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
+# define MAX_CONNECTIONS 255 // Used in HttpServer.cpp -> initServer()
 
 # include <Config.hpp>
 # include <ClientHandler.hpp>

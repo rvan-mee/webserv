@@ -17,8 +17,8 @@
 #include <iostream>
 
 #define READ_SIZE 1024 * 1024
-#define WRITE_SIZE 1024 * 16
-// #define WRITE_SIZE 1024 * 1024 * 16 is faster but doesn't have nice animation in browser
+// #define WRITE_SIZE 1024 * 16
+#define WRITE_SIZE 1024 * 1024 * 16 // is faster but doesn't have nice animation in browser
 
 #define READ 0
 #define WRITE 1
@@ -254,7 +254,7 @@ void	ClientHandler::setTimeOut( void )
 void	ClientHandler::setHup( void )
 {
 	if (!_pollHupSet) {
-		std::cout << RED "Client hang-up" RESET << std::endl;
+		std::cout << RED "Client hang-up" RESET "\n";
 		this->setTimeOut();
 		_pollHupSet = true;
 	}
@@ -350,7 +350,7 @@ void	ClientHandler::handleRead( int fd )
 		return ;
 	}
 
-	std::cout << GREEN "Received all data" RESET << std::endl;
+	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
 
 	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"));
@@ -383,7 +383,7 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
-	std::cout << GREEN "Sent all data" RESET << std::endl;
+	std::cout << GREEN "Sent all data" RESET "\n";
 
 	if (_timeOutSet) {
 		_doneWriting = true;
