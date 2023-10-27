@@ -15,3 +15,8 @@ Left to do:
 - know which server you are on @done
 //-exec set follow-fork-mode child
 curl --resolve example.com:8070:127.0.0.1 http://example.com:8070 
+
+
+fix index page
+delete
+405

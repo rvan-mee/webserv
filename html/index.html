@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home</title>
-    <link rel="stylesheet" type="text/css" href="styles.css">
+    <link rel="stylesheet" type="text/css" href="/html/styles.css">
 </head>
 
 
@@ -44,20 +44,20 @@
             <div class="functionbox">
                 <p class = "titlebox">Test :</br>New Page (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Opens a new page (page1.html)</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='/page1.html';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/html/page1.html';">Run</button>
             </div>
 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br>New Page 2 (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Opens a new page (page2.html)</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='/page2.html';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/html/page2.html';">Run</button>
             </div>
-
+<!-- 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br>Basic Form (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Opens a new page (page2.html)</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='/page2.html';">Run</button>
-            </div>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/html/page2.html';">Run</button>
+            </div> -->
 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br>Upload file (POST) (NWY)</p>
@@ -76,13 +76,13 @@
             <div class="functionbox">
                 <p class = "titlebox">Test :</br> Show Files (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Shows page with files in current directory</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/src/http';">Run</button>
             </div>
 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br> Files delete (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Deletes a file from the server</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+                <p class="textbox">In terminal: curl -X DELETE localhost:8070/uploads/file_to_delete.txt</p>
             </div>
 
             <div class="functionbox">
@@ -106,7 +106,7 @@
             <div class="functionbox">
                 <p class = "titlebox">Test :</br> 405 not allowed (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Page not allowed to visit</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/files/photos';">Run</button>
             </div>
 
         </div>
