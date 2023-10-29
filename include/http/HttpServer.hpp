@@ -28,8 +28,9 @@ class HttpServer
 	std::vector<ClientHandler *>	_eventList;
 	EventPoll						_poll;
 
-	int		getEventIndex(int fd);
-	void	removeClient(int eventIndex);
+	int		getEventIndex( int fd );
+	void	removeClient( int eventIndex );
+	void	checkClientTimeOuts( void );
 
   public:
 	/******************************
@@ -44,12 +45,12 @@ class HttpServer
 	*****************************/
 
 	bool	isServerSocket( int fd );
-	void	initServer(Config &config);
-	void	createSockets(void);
-	void	bindSockets(void);
-	void	listenToSockets(void);
-	void	pollSockets(void);
-	void	parseRequest(std::vector<char> buffer);
+	void	initServer( Config &config );
+	void	createSockets( void );
+	void	bindSockets( void );
+	void	listenToSockets( void );
+	void	pollSockets( void );
+	void	parseRequest( std::vector<char> buffer );
 	void	closeServerSockets( void );
 	void	setPorts( Config &config );
 };

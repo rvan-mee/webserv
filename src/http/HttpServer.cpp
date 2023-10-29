@@ -30,7 +30,7 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
-#define REQUEST_TIMEOUT 5000
+#define	POLL_TIMEOUT 5000 // every 5 seconds
 
 
 /******************************
@@ -71,7 +71,26 @@ bool	HttpServer::isServerSocket( int fd )
 	return ( false );
 }
 
-void HttpServer::removeClient(int eventIndex)
+void HttpServer::checkClientTimeOuts( void )
+{
+	serverTime	currentTime = std::chrono::steady_clock::now();
+	bool		clientTimedOut;
+	bool		clientAlreadyTimedOut;
+
+	for (size_t i = 0; i < _eventList.size(); i++) {
+		clientAlreadyTimedOut = _eventList[i]->isTimedOut();
+		clientTimedOut = _eventList[i]->checkTimeOut(currentTime);
+
+		if (clientAlreadyTimedOut && clientTimedOut) {
+			// If the client timed out twice we cannot send a timeout response.
+			// We remove the client and end the connection.
+			this->removeClient(i);
+			i--;
+		}	
+	}
+}
+
+void HttpServer::removeClient( int eventIndex )
 {
 	std::cout << RED "Closing client connection" RESET << "\n";
 	const int socketFd = _eventList[eventIndex]->getSocketFd();
@@ -119,38 +138,16 @@ void	HttpServer::initServer( Config &config )
 
 		// _poll.printList()
 
-		ready = poll(events, numEvents, REQUEST_TIMEOUT);
+		ready = poll(events, numEvents, POLL_TIMEOUT);
 		if (ready < 0) {
 			closeServerSockets();
 			throw ( std::runtime_error( "Failed to wait for events" ) );
 		}
 
-		if (ready == 0) {
-			for (size_t i = 0; i < _eventList.size(); i++) {
-				std::cout << RED "Request or connection timed out" RESET "\n";
-				// for every client we need to send a timeout response and close the socket?
-				if (_eventList[i]->isTimedOut()) {
-					// The client has already been set to 'timed out' but has not been able to send
-					// a response within a second timeout. We will just remove the client and close the connection
-					// since we cannot communicate with the client.
-					this->removeClient(i);
-					i--;
-				} else {
-					// The client has timed out, we will send back a 408 response
-					_eventList[i]->setTimeOut();
-					bool	cgiRunning = _eventList[i]->isCgiRunning();
-					_eventList[i]->clear();
-					_eventList[i]->setTimeOutResponse(cgiRunning);
+		this->checkClientTimeOuts();
 
-					int	socketFd = _eventList[i]->getSocketFd();
-					_poll.removeEvent(socketFd, POLLIN | POLLRDHUP);
-					_poll.removeEvent(socketFd, POLLOUT);
-					_poll.addEvent(_eventList[i]->getSocketFd(), POLLOUT );
-				}
-				// after having written everything remove the client from the eventList
-			}
+		if (ready == 0)
 			continue ;
-		}
 
 		for (size_t i = 0; i < numEvents; i++) {
 			// This event does not contain an fd that is ready
