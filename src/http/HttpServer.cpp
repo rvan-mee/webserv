@@ -169,7 +169,7 @@ void	HttpServer::initServer( Config &config )
 
 
 				std::cout << GREEN "Accepted a new client" RESET "\n";
-				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config);
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config, _socketPortMap.at(eventFd));
 				_eventList.push_back(newEvent);
 				continue ;
 			}
@@ -309,6 +309,7 @@ void	HttpServer::createSockets( void )
 		}
 
 		_serverSockets.push_back(newSocket);
+		_socketPortMap.insert({newSocket, _ports[i]});
 	}
 }
 

@@ -27,6 +27,7 @@ class HttpServer
 	std::vector<int>				_ports;
 	std::vector<ClientHandler *>	_eventList;
 	EventPoll						_poll;
+	std::map<int, int>				_socketPortMap;
 
 	int		getEventIndex( int fd );
 	void	removeClient( int eventIndex );

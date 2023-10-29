@@ -17,8 +17,8 @@
 #include <iostream>
 
 #define READ_SIZE 1024 * 1024
-#define WRITE_SIZE 1024 * 16
-// #define WRITE_SIZE 1024 * 1024 * 16 // is faster but doesn't have nice animation in browser
+// #define WRITE_SIZE 1024 * 16 // Slow write to show that the server is non-blocking
+#define WRITE_SIZE 1024 * 1024 * 16
 
 #define READ 0
 #define WRITE 1
@@ -28,8 +28,9 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
-ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
+ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port ) :
 	_socketFd(socketFd),
+	_port(port),
 	_cgi(poll),
 	_config(config),
 	_poll(poll),

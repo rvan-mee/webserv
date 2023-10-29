@@ -51,6 +51,7 @@ class ClientHandler
 		void	setTimeOutResponse( bool cgiRunning );
 
 		int					_socketFd;
+		int					_port;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
 		std::string			_response;
@@ -64,7 +65,7 @@ class ClientHandler
 		HttpRequest			_request;
 
 	public:
-		ClientHandler( int socketFd, EventPoll& poll, Config& config );
+		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port );
 		~ClientHandler();
 
 		int		getSocketFd( void ) { return (_socketFd); };
