@@ -159,6 +159,8 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config con
         try
         {
             _host = config.getServer(v[1], port).getServerNames()[0]; //if server isn't found, default server will be the host and a 404 response will be returned
+            _host = "_";
+            std::cout << "host: " << _host << std::endl;
         }
         catch(const std::exception& e)
         {

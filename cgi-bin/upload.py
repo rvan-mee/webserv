@@ -3,8 +3,6 @@
 import os
 import time
 
-while True:
-    time.sleep(1)
 import sys
 
 # Define the directory where you want to store uploaded files
@@ -54,22 +52,34 @@ import re
 #     return None
 
 
-def extract_content_from_http_request(http_request):
-    # Define a regular expression pattern to extract the content between the boundaries
-    # http_request = http_request.encode('utf-8')
-
-    pattern = re.compile(rb'--\S+\r\n.*?\r\n\r\n(.*?)\r\n--\S+--', re.DOTALL)
+#def extract_content_from_http_request(http_request):
+ #   Define a regular expression pattern to extract the content between the boundaries
+  #  http_request = http_request.encode('utf-8')
+#
+ #   pattern = re.compile(rb'--\S+\r\n.*?\r\n\r\n(.*?)\r\n--\S+--', re.DOTALL)
+  #  pattern = b"Content-Type:.*?\r\n\r\n([^-]+)--"
     
-    # Search for the pattern in the HTTP request
-    match = pattern.search(http_request)
+    #Search for the pattern in the HTTP request
+   # match = re.search(http_request)
 
+   # if match:
+    #    content = match.group(1)
+     #   Split the content by newlines and return the last part (the actual content)
+      #  return content.split(b'\r\n')[-1]
+
+  #  return None
+def extract_content_from_http_request(request_data):
+    # Define the regular expression pattern to extract the file data
+    pattern = b"Content-Type:.*?\r\n\r\n([^-]+)--"
+
+    # Search for the pattern in the request data
+    match = re.search(pattern, request_data, re.DOTALL)
+
+    # If the pattern is found, return the file data
     if match:
-        content = match.group(1)
-        # Split the content by newlines and return the last part (the actual content)
-        return content.split(b'\r\n')[-1]
-
-    return None
-
+        return match.group(1)
+    else:
+        return None
     
 # def extract_content_from_http_request(http_request):
 #     # Define a regular expression pattern to extract the boundary from the Content-Type header
@@ -132,29 +142,20 @@ def main():
     request_data = b''
 
     # Read the request data in chunks
-    request_data = """
-    POST /upload.py HTTP/1.1
-    Host: localhost:8070
-    Content-Disposition: form-data; name="myFile"; filename="hoi.txt"
-    Content-Type: text/plain
 
-    hoi
-    """
-    # while True:
-    #     chunk = sys.stdin.buffer.read(8192)  # Read data in chunks of 8KB
-    #     if not chunk:
-    #         break
-    #     request_data += chunk
+    while True:
+        chunk = sys.stdin.buffer.read(8192)  # Read data in chunks of 8KB
+        if not chunk:
+            break
+        request_data += chunk
     # print(request_data.decode('utf-8'))=
     # Extract the file name and file data
     # if "filename=" in request_data.decode('utf-8'):
         # file_name = request_data.split(b"filename=")[1].split(b"&")[0].decode('utf-8')
-    # file_name = extract_filename_from_http_request(request_data)
-    # print(file_name)
-    # file_data = extract_content_from_http_request(request_data)
-    # print(file_data)
-    file_name = "hoi.txt"
-    file_data = b"hoi"
+    file_name = extract_filename_from_http_request(request_data)
+    print(file_name)
+    file_data = extract_content_from_http_request(request_data)
+     # print(file_data)
 #  request_data.split(b"\n")[1]
 
     try:

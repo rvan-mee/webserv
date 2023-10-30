@@ -333,6 +333,7 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
 /**
  * @brief Get the server block with the given server name
  * @param serverName The name of the server block
+ * @param port The port of the server block
  * @return The server block corresponding to the given server name. If the
  * server name is not found, the default server is returned.
  * @throw std::runtime_error if 'serverName' is not found, 
@@ -341,29 +342,65 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
 Server &Config::getServer( std::string serverName, int port )
 {
     std::vector<Server>::iterator       defaultServer;
+    std::vector<Server>::iterator       serverMatchPort;
     std::vector<Server>::iterator       it;
     std::vector<std::string>::iterator  it2;
     std::vector<std::string>            serverNames;
+    int                                 serverPort;
 
-    (void)port;
+    /* 
+    We set the defaultServer and serverMatchPort to the end of the servers vector. 
+    If we find a server with a server_name "_", we'll set defaultServer to that server.
+    If we don't find a server with a server_name "_", it means there is no default server.
+    */
     defaultServer = this->servers.end();
+    serverMatchPort = this->servers.end();
+
+    /* 
+    Order of return:
+    1. If exact match is found. Return that server.
+    2. If no exact match is found, but a server with the same port is found. 
+    Return the first server with the same port.
+    3. If no exact match is found, and no server with the same port is found, 
+    but a default server is found with matching port. Return the default server.
+    4. If no exact match is found, and no server with the same port is found, 
+    and no default server is found. Throw an error.
+    */
+
+    // First 'for' loop loops through all servers
     for ( it = this->servers.begin(); it != this->servers.end(); it++ )
     {
+        // Get the port and server names of the current server
+        serverPort = it->getListen()[0];
         serverNames = it->getServerNames();
+
+        // Second 'for' loop loops through all server names of the current server
         for ( it2 = serverNames.begin(); it2 != serverNames.end(); it2++ )
         {
-            if ( *it2 == serverName ) {
+            // 1. Return server if exact match found
+            if ( *it2 == serverName && serverPort == port )
                 return ( *it );
-            }
-            if ( *it2 == "_" ) {
+
+            // Set serverMatchPort to the current server if port matches
+            if ( serverPort == port )
+                serverMatchPort = it;
+            
+            // Set defaultServer to the current server if server_name is "_" and port matches
+            if ( *it2 == "_" && serverPort == port )
                 defaultServer = it;
-            }
         }
     }
+
+    // 2. Return first server with matching port
+    if ( serverMatchPort != this->servers.end() )
+        return ( *serverMatchPort );
+
+    // 3. Return default server with matching port
     if ( defaultServer != this->servers.end() )
         return ( *defaultServer );
-    else
-        throw ( std::runtime_error( "Error: No default server found." ) );
+
+    // 4. Throw error
+    throw ( std::runtime_error( "Error: No server found." ) );
 }
 
 /**
