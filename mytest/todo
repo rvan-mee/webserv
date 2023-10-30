@@ -16,7 +16,9 @@ Left to do:
 //-exec set follow-fork-mode child
 curl --resolve example.com:8070:127.0.0.1 http://example.com:8070 
 
-environment variables script
 
-fout by file uplouden, method not allowed
-big image loading
+content length bij python scripts
+in geval van niet bestaande host, doorgeven
+
+requests worden niet gesorteerd per port
+redirect wordt niet gepakt van juiste server

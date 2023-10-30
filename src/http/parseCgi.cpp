@@ -36,7 +36,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             file.close(); // Don't forget to close the file when you're done with it.
             return ;
         } else {
-            return (response.setError(404, "The requested resource was not found"));
+            return (response.setError(404, "Not Found"));
         }
     }
     else

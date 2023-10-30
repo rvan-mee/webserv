@@ -52,8 +52,10 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request)
 {
     try {
-        if (server.getLocation(_request_URI).getAllowPost() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowPost() == false)
+        {
             return (response.setError(405, "Method Not Allowed"));
+        }
     }
     catch (std::exception &e){
     }
@@ -83,7 +85,7 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
         return (response.setError(204, "No Content"));
     }
      try {
-        if (server.getLocation(_request_URI).getAllowDelete() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowDelete() == false)
         {
             _poll.addEvent(_socketFd, POLLOUT);
             return (response.setError(405, "Method Not Allowed"));
@@ -156,8 +158,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config con
     {
         try
         {
-            config.getServer(v[1]); //if server isn't found, default server will be the host and a 404 response will be returned
-            _host = v[1];
+            _host = config.getServer(v[1]).getServerNames()[0]; //if server isn't found, default server will be the host and a 404 response will be returned
         }
         catch(const std::exception& e)
         {
