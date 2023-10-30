@@ -25,7 +25,7 @@ class CgiHandler
 
 		void	parseCgiOutput( void );
 		void	childInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
-		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2], std::string request );
+		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
 
 		EventPoll&			_poll;
 		int					_pipeRead;
@@ -41,7 +41,7 @@ class CgiHandler
 		CgiHandler( EventPoll& poll );
 		~CgiHandler();
 	
-		void				setWriteBuffer( std::vector<char>& buffer );
+		void				setWriteBuffer( std::string& buffer );
 		std::vector<char>&	getReadBuffer( void );
 
 		bool	isEvent(int fd);
@@ -52,7 +52,7 @@ class CgiHandler
 		void	clear( void );
 		void	end( void );
 
-		void	startPythonCgi( std::string script, std::string request );
+		void	startPythonCgi( std::string script );
 };
 
 #endif
