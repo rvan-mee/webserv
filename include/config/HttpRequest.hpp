@@ -35,9 +35,9 @@ class HttpRequest
 		HttpRequest(CgiHandler& cgi, EventPoll& poll, int socketFd) : _cgi(cgi), _poll(poll), _socketFd(socketFd) {}
 
 		enum requestType	{ GET, POST, DELETE };
-		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Config config);
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Config config, int port);
 		void				isRequestLine(std::string line, HttpResponse &response);
-		void				isHeader(std::string line, HttpResponse &response, Config config);
+		void				isHeader(std::string line, HttpResponse &response, Config config, int port);
 		requestType			getMethod();
 		void				setMethod(requestType method);
 		void				setURI(std::string target);

@@ -338,13 +338,14 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
  * @throw std::runtime_error if 'serverName' is not found, 
  * and also if no default server is found.
  */
-Server &Config::getServer( std::string serverName )
+Server &Config::getServer( std::string serverName, int port )
 {
     std::vector<Server>::iterator       defaultServer;
     std::vector<Server>::iterator       it;
     std::vector<std::string>::iterator  it2;
     std::vector<std::string>            serverNames;
 
+    (void)port;
     defaultServer = this->servers.end();
     for ( it = this->servers.begin(); it != this->servers.end(); it++ )
     {

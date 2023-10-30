@@ -21,4 +21,3 @@ content length bij python scripts
 in geval van niet bestaande host, doorgeven
 
 requests worden niet gesorteerd per port
-redirect wordt niet gepakt van juiste server
