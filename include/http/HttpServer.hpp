@@ -13,7 +13,7 @@
 #ifndef HTTPSERVER_HPP
 # define HTTPSERVER_HPP
 
-# define MAX_CONNECTIONS 100 // Used in HttpServer.cpp -> initServer()
+# define MAX_CONNECTIONS 255 // Used in HttpServer.cpp -> initServer()
 
 # include <Config.hpp>
 # include <ClientHandler.hpp>
@@ -27,9 +27,11 @@ class HttpServer
 	std::vector<int>				_ports;
 	std::vector<ClientHandler *>	_eventList;
 	EventPoll						_poll;
+	std::map<int, int>				_socketPortMap;
 
-	int		getEventIndex(int fd);
-	void	removeClient(int eventIndex);
+	int		getEventIndex( int fd );
+	void	removeClient( int eventIndex );
+	void	checkClientTimeOuts( void );
 
   public:
 	/******************************
@@ -44,12 +46,12 @@ class HttpServer
 	*****************************/
 
 	bool	isServerSocket( int fd );
-	void	initServer(Config &config);
-	void	createSockets(void);
-	void	bindSockets(void);
-	void	listenToSockets(void);
-	void	pollSockets(void);
-	void	parseRequest(std::vector<char> buffer);
+	void	initServer( Config &config );
+	void	createSockets( void );
+	void	bindSockets( void );
+	void	listenToSockets( void );
+	void	pollSockets( void );
+	void	parseRequest( std::vector<char> buffer );
 	void	closeServerSockets( void );
 	void	setPorts( Config &config );
 };
