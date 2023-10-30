@@ -99,9 +99,7 @@ def extract_content_from_http_request(http_request):
 def save_uploaded_file(file_name, file_data):
     # Create an absolute path for the uploaded file
     file_path = os.path.join(upload_dir, file_name)
-    print("file_path")
-    print(file_path)
-    print("file_path")
+
     # Open the file in binary write mode and write the data
     with open(file_path, 'wb') as file:
         file.write(file_data)
@@ -134,32 +132,46 @@ def main():
     request_data = b''
 
     # Read the request data in chunks
-    while True:
-        chunk = sys.stdin.buffer.read(8192)  # Read data in chunks of 8KB
-        if not chunk:
-            break
-        request_data += chunk
+    request_data = """
+    POST /upload.py HTTP/1.1
+    Host: localhost:8070
+    Content-Disposition: form-data; name="myFile"; filename="hoi.txt"
+    Content-Type: text/plain
+
+    hoi
+    """
+    # while True:
+    #     chunk = sys.stdin.buffer.read(8192)  # Read data in chunks of 8KB
+    #     if not chunk:
+    #         break
+    #     request_data += chunk
     # print(request_data.decode('utf-8'))=
     # Extract the file name and file data
     # if "filename=" in request_data.decode('utf-8'):
         # file_name = request_data.split(b"filename=")[1].split(b"&")[0].decode('utf-8')
-        file_name = extract_filename_from_http_request(request_data)
-        print(file_name)
-        file_data = extract_content_from_http_request(request_data)
-        print(file_data)
+    # file_name = extract_filename_from_http_request(request_data)
+    # print(file_name)
+    # file_data = extract_content_from_http_request(request_data)
+    # print(file_data)
+    file_name = "hoi.txt"
+    file_data = b"hoi"
 #  request_data.split(b"\n")[1]
 
-        try:
-            # Save the uploaded file
-            file_path = save_uploaded_file(file_name, file_data)
-            print("HTTP/1.1 200 OK")
-            print("Content-type: text/html\n")
-            print(f"File '{file_name}' successfully uploaded and saved at: {file_path}")
-        except Exception as e:
-            print(e)
-            print("HTTP/1.1 500 Internal Server Error")
-            print("Content-type: text/html\n")
-            print("Error: Failed to save the uploaded file.")
+    try:
+        # Save the uploaded file
+        file_path = save_uploaded_file(file_name, file_data)
+        character_count = len(f"File '{file_name}' successfully uploaded and saved at: {file_path}")
+        print("HTTP/1.1 200 OK")
+        # Set the content type to HTML
+        print("Content-type: text/html")
+        # Get environment variables
+        print(f"Content-Length: {character_count + 1}\n\n")
+        print(f"File '{file_name}' successfully uploaded and saved at: {file_path}")
+    except Exception as e:
+        print(e)
+        print("HTTP/1.1 500 Internal Server Error")
+        print("Content-type: text/html\n")
+        print("Error: Failed to save the uploaded file.")
     # else:
         # print("HTTP/1.1 400 Bad Request")
         # print("Content-type: text/html\n")

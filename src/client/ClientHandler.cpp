@@ -399,7 +399,6 @@ void	ClientHandler::handleWrite( int fd )
 	ssize_t bytesSent = send(_socketFd, _response.c_str(), bytesToWrite, 0);
 	if (bytesSent < 0)
 		throw ( std::runtime_error("Failed to send response to client") );
-
 	_response.erase(0, bytesSent);
 
 	// if all data hasn't been sent yet:
