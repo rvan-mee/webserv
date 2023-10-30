@@ -49,7 +49,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 }
 
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request)
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest)
 {
     try {
         if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowPost() == false)
@@ -65,7 +65,7 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool&
         // You can now read or manipulate the file here if needed.
         try {
             //give body input to python script
-            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py", request);
+            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
             isCgiRequest = true;
         }
         catch (std::exception &e) {
@@ -210,7 +210,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         parseGetRequest(response, config.getServer(_host, port));
     } 
     else if (_request_method == POST && pathExists(config.getServer(_host, port).getRoot() +_request_URI)) {
-        parsePostRequest(response, config.getServer(_host, port), isCgiRequest, request);
+        parsePostRequest(response, config.getServer(_host, port), isCgiRequest);
     }
     else if (_request_method == DELETE) {
         parseDeleteRequest(response, config.getServer(_host, port));

@@ -4,12 +4,12 @@ import os
 def count_characters_in_html(env_variables):
     # Define the HTML content as a string
     html_content = """
-    <html>
-    <head><title>Environment Variables</title></head>
-    <body>
-    <h1>Environment Variables:</h1>
-    <ul>
-    """
+<html>
+<head><title>Environment Variables</title></head>
+<body>
+<h1>Environment Variables:</h1>
+<ul>
+"""
 
     # Iterate through the 'env_variables' and add the content to the string
     for key, value in env_variables.items():
@@ -17,10 +17,10 @@ def count_characters_in_html(env_variables):
 
     # Complete the HTML content
     html_content += """
-    </ul>
-    </body>
-    </html>
-    """
+</ul>
+</body>
+</html>
+"""
 
     # Calculate the number of characters in the HTML content
     character_count = len(html_content)
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     # Set the content type to HTML
     print("Content-type: text/html")
     # Get environment variables
-    print(f"Content-Length: {character_count}\n\n")
-    # print("\n\n")
+    print(f"Content-Length: {character_count}\r\n")
+    print("\r\n")
     # Generate an HTML response
     print("<html>")
     print("<head><title>Environment Variables</title></head>")

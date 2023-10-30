@@ -22,8 +22,8 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             // You can now read or manipulate the file here if needed.
             try {
 
-                // _cgi.setWriteBuffer(); // TODO: if you want to give the CGI some info to work with 
-                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py", request);
+                _cgi.setWriteBuffer(request); // TODO: if you want to give the CGI some info to work with 
+                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
                 isCgiRequest = true;
                 
             }
