@@ -347,6 +347,7 @@ Server &Config::getServer( std::string serverName, int port )
     std::vector<std::string>::iterator  it2;
     std::vector<std::string>            serverNames;
     int                                 serverPort;
+    bool                                portMatchFound;
 
     /* 
     We set the defaultServer and serverMatchPort to the end of the servers vector. 
@@ -355,6 +356,7 @@ Server &Config::getServer( std::string serverName, int port )
     */
     defaultServer = this->servers.end();
     serverMatchPort = this->servers.end();
+    portMatchFound = false;
 
     /* 
     Order of return:
@@ -382,8 +384,11 @@ Server &Config::getServer( std::string serverName, int port )
                 return ( *it );
 
             // Set serverMatchPort to the current server if port matches
-            if ( serverPort == port )
+            if ( serverPort == port && portMatchFound == false)
+            {
                 serverMatchPort = it;
+                portMatchFound = true;
+            }
             
             // Set defaultServer to the current server if server_name is "_" and port matches
             if ( *it2 == "_" && serverPort == port )
