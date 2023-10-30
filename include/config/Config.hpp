@@ -95,7 +95,7 @@ class Config
 		 * Getters
 		 *****************************/
 
-		Server				&getServer( std::string serverName );
+		Server				&getServer( std::string serverName, int port );
 		std::vector<Server>	&getAllServers( void );
 		std::string			&getRoot( void );
 		std::vector<int>	&getListen( void );
