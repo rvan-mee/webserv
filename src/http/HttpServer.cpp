@@ -229,6 +229,12 @@ void	HttpServer::initServer( Config &config )
 					std::cout << BLUE "Handling write event" RESET "\n";
 					_eventList[eventIndex]->handleWrite(eventFd);
 
+					if (_eventList[eventIndex]->isDoneWriting() && _eventList[eventIndex]->shouldTerminate()) {
+						std::cout << RED "Closing connection with client" RESET "\n";
+						this->removeClient(eventIndex);
+						continue ;
+					}
+
 					if (_eventList[eventIndex]->isTimedOut() && _eventList[eventIndex]->isDoneWriting()) {
 						std::cout << RED "Removing timed out client" RESET "\n";
 						this->removeClient(eventIndex);

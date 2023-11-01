@@ -109,8 +109,6 @@ void	CgiHandler::handleRead( void )
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
-	std::cout << "bytes read from cgi: " << currentBytesRead << std::endl;
-
 	_cgiOutput.insert(_cgiOutput.end(), newRead.begin(), newRead.begin() + currentBytesRead);
 	_bytesRead += currentBytesRead;
 }
