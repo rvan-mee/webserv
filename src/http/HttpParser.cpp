@@ -230,7 +230,6 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config con
         try
         {
             _host = config.getServer(v[1], port).getServerNames()[0]; //if server isn't found, default server will be the host and a 404 response will be returned
-            _host = "_";
             std::cout << "host: " << _host << std::endl;
         }
         catch(const std::exception& e)
@@ -263,7 +262,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         std::cout << line << std::endl;
         request += line;
         request += "\n";
-        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
+        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE") || !line.find("HTTP/1.1")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
