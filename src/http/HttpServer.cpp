@@ -191,12 +191,15 @@ void	HttpServer::initServer( Config &config )
 				if ( events[i].revents & POLLHUP ) {
 					if (_eventList[eventIndex]->isSocketFd(eventFd)) {
 						this->removeClient(eventIndex);
+						continue ;
 					}
 					else { // the POLLHUP is connected to a cgi pipe
-						std::cout << RED "Ending CGI" RESET "\n";
-						_eventList[eventIndex]->endCgi();
+						if (!(events[i].revents & POLLIN)) {
+							std::cout << RED "CGI has quit" RESET "\n";
+							_eventList[eventIndex]->endCgi();
+							continue ;
+						}
 					}
-					continue ;
 				}
 
 				if ( events[i].revents & POLLERR ) {

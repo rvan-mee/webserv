@@ -254,7 +254,6 @@ void	CgiHandler::startPythonCgi( HttpRequest& request, std::string script )
 		// Setup pipes in child process
 		childInitPipes( pipeToCgi, pipeFromCgi );
 
-		// Execute the CGI script
 		execve( PYTHON_PATH, args, this->getEnvironmentVariables(request, script) );
 		std::cerr << "Error executing python script" << std::endl;
 		exit( 1 );
@@ -263,7 +262,15 @@ void	CgiHandler::startPythonCgi( HttpRequest& request, std::string script )
 	{
 		// Setup pipes in parent process
 		parentInitPipes( pipeToCgi, pipeFromCgi );
-		_poll.addEvent(_pipeWrite, POLLOUT);
+		if (_cgiInput.size() > 0)
+			_poll.addEvent(_pipeWrite, POLLOUT);
+		else {
+			// if we dont have anything to write into the pipe we can close the write side
+			// and start polling for the output right away
+			close(_pipeWrite);
+			_pipeWrite = -1;
+			_poll.addEvent(_pipeRead, POLLIN);
+		}
 	}
 }
 
