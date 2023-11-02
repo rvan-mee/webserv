@@ -41,7 +41,7 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
         if (server.getAutoindex() == false)
                 return (response.setError(403, "Forbidden"));
             else
-                return (response.buildBodyDirectory(server.getRoot() + _request_URI, server));
+                return (response.buildBodyDirectory(_request_URI, server));
     }
     else if (_request_URI != "/")
         return (response.buildBodyFile(server.getRoot() + _request_URI));
@@ -105,11 +105,10 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, std::
     catch (std::exception &e){
     }
     //in case of file upload
-    if (_content_type.find("multipart/form-data") != std::string::npos) {        // You can now read or manipulate the file here if needed.
+    if (_content_type.find("multipart/form-data") != std::string::npos) { 
         try {
             std::string fileName = extractFilenameFromHTTPRequest(request);
-            //give body input to python script
-            std::string filePath = "uploads/" + fileName;
+            std::string filePath = server.getUploadsDir() + fileName;
             std::cout << "filepaht: " << filePath << std::endl;
             std::ofstream uploadFile(filePath);
             std::string content = extractContent(_message_body, "------");
@@ -238,7 +237,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     {
         request += line;
         request += "\n";
-        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE") || !line.find("HTTP/1.1")) // request line
+        if (line.find("HTTP/1.1") != std::string::npos) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;

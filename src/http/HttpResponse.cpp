@@ -93,49 +93,39 @@ void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
 	}
 	else
 	{
-		_message_body += "<html>\n<head><title>Index of " + directoryPath + "</title></head>\n";
-		_message_body += "<h1>Index of " + directoryPath + "</h1><hr>\n";
-
-		DIR *dir;
-		struct dirent *ent;
-		if ((dir = opendir (directoryPath.c_str())) == NULL)
+		_message_body += "<html>\n<title>" + directoryPath + "</title>\n";
+		DIR *currentDir;
+		struct dirent *var;
+		if ((currentDir = opendir ((server.getRoot() + directoryPath).c_str())) == NULL)
 		{
 			std::cerr << "Can't open directory: " << directoryPath << std::endl;
 		}
-		_message_body += "<table><tr><th>Name</th><th>Last Modified</th><th>Size (bytes)</th></tr>";
-		while ((ent = readdir(dir)) != NULL)
+		_message_body += "<table><tr><th>Files</th></tr>";
+		while ((var = readdir(currentDir)) != NULL)
 		{
-			if (std::string(ent->d_name) == ".")
+			if (std::string(var->d_name) == ".")
 				continue ;
 
 			std::string filepath = directoryPath;
 			if(directoryPath.back()!= '/'){
 				filepath += '/';
 			}
-			filepath += ent->d_name;
-
-			//get directory/file information
-			struct stat buf; //struct to store file/directory data
-			stat(filepath.c_str(), &buf);
-		
-
+			filepath += var->d_name;
 			_message_body += "<tr><td>";
 			_message_body += "<a href=\"";
-			_message_body += ent->d_name;
-			if (ent->d_type == DT_DIR)
+			_message_body += directoryPath;
+			_message_body += "/";
+			_message_body += var->d_name;
+			if (var->d_type == DT_DIR)
 				_message_body += "/";
 			_message_body += "\">";
-			_message_body += ent->d_name;
-			if (ent->d_type == DT_DIR)
+			_message_body += var->d_name;
+			if (var->d_type == DT_DIR)
 				_message_body += "/";
 			_message_body += "</a></td><td>";
-			if (ent->d_type != DT_DIR)
-				_message_body += "</td><td align=\"right\">" + std::to_string(buf.st_size) + "</td>";
-			else
-				_message_body += "</td><td align=\"right\"> - </td>";
 			_message_body += '\n';
 		}
-		closedir(dir);	
+		closedir(currentDir);	
 		_message_body += "</table></hr></body>\n</html>\n";
 
 	}
