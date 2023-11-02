@@ -35,6 +35,7 @@ class HttpResponse
 	void		setError(int statusCode, std::string _reason_phrase);
 	std::string	buildResponse( Server server);
 	void		setMessageBody( Server server);
+	void		setMessageBodyText( std::string messageBody);
 	void 		buildBodyDirectory(std::string directoryPath, Server server);
 	void 		buildBodyFile(std::string requestedFile);
 	void 		setBodyHtml(std::string pathHtmlPage);

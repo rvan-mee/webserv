@@ -48,8 +48,59 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     response.buildResponse(server);
 }
 
+std::string extractFilenameFromHTTPRequest(const std::string& httpRequest) {
+    // Find the position of "Content-Disposition" in the HTTP request.
+    std::size_t pos = httpRequest.find("Content-Disposition");
+    if (pos == std::string::npos) {
+        return ""; // Header not found, or it's not a POST request.
+    }
+    std::cout << "pos: " << pos << std::endl;
+    // Find the position of "filename=" in the "Content-Disposition" header.
+    pos = httpRequest.find("filename=", pos);
+    if (pos == std::string::npos) {
+        return ""; // "filename=" not found in the header.
+    }
+    std::cout << "pos: " << pos << std::endl;
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest)
+    // Extract the filename from the header.
+    pos += 10; // Move past "filename=".
+    std::size_t endPos = httpRequest.find("\"", pos);
+    if (endPos == std::string::npos) {
+        return ""; // Filename closing quote not found.
+    }
+    std::cout << "endpos: " << pos << std::endl;
+
+    // Extract and return the filename.
+    std::string filename = httpRequest.substr(pos, endPos - pos);
+    return filename;
+}
+
+std::string extractContent(const std::string &inputText, const std::string &boundary) {
+  std::istringstream input(inputText);
+    std::string line;
+    std::ostringstream extractedContent;
+       // std::cout << "inputText" << inputText << std::endl;
+
+    while (std::getline(input, line)) {
+        if (line.find("Content-Type:") != std::string::npos)
+        {
+
+            while (std::getline(input, line))
+            {
+               // std::cout << "line" << line << std::endl;
+                if (line.find(boundary) != std::string::npos)
+                  break;
+                extractedContent << line << "\n";
+            }
+        }
+        // if (line.find(boundary) != std::string::npos)
+        //     break;
+    }
+    return extractedContent.str();
+}
+
+
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, std::string request)
 {
     try {
         if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowPost() == false)
@@ -61,12 +112,32 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool&
     }
     //in case of file upload
     // std::cout << "content type: " << _content_type << std::endl;
-    if (_content_type == "multipart/form-data") {
-        // You can now read or manipulate the file here if needed.
+    if (_content_type.find("multipart/form-data") != std::string::npos) {        // You can now read or manipulate the file here if needed.
         try {
+            std::string fileName = extractFilenameFromHTTPRequest(request);
             //give body input to python script
-            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
-            isCgiRequest = true;
+            std::string filePath = "uploads/" + fileName;
+            std::cout << "filepaht: " << filePath << std::endl;
+	        //std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
+            std::ofstream uploadFile(filePath);
+            std::string content = extractContent(_message_body, "------");
+          //  std::cout << "content " << content << " end content" << std::endl;
+          //  if (!content.empty()) {
+             //   std::cout << content << std::endl;
+          //  } else {
+               // std::cout << "Content not found." << std::endl;
+           // }
+            if (uploadFile.is_open()) {
+                // uploadFile.write(content.c_str(), content.size());
+                uploadFile << content;
+                uploadFile.close();
+                response.setMessageBodyText("File saved: " + filePath);
+                response.buildResponse(server);
+            } else {
+                response.setError(400, "Bad Request");
+            }
+                //_cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+            // isCgiRequest = true;
         }
         catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
@@ -210,7 +281,7 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
         parseGetRequest(response, config.getServer(_host, port));
     } 
     else if (_request_method == POST && pathExists(config.getServer(_host, port).getRoot() +_request_URI)) {
-        parsePostRequest(response, config.getServer(_host, port), isCgiRequest);
+        parsePostRequest(response, config.getServer(_host, port), request);
     }
     else if (_request_method == DELETE) {
         parseDeleteRequest(response, config.getServer(_host, port));

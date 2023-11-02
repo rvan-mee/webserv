@@ -277,6 +277,11 @@ void	 HttpResponse::setMessageBody( Server server )
 	}
 }
 
+void	 HttpResponse::setMessageBodyText( std::string messageBody )
+{
+	_message_body = messageBody;
+}
+
 /**
  * @brief Build the response string
  * @param server The server object with all the server information
