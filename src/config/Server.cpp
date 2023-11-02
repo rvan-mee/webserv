@@ -134,17 +134,12 @@ void    Server::parseListen( std::vector<std::string> &tokens )
 void	Server::parseServerName( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'server_name' token.
-    while ( tokens[0] != ";" )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid server_name instruction in config file" ) );
 
-        // Add the server name to the server block.
-        this->serverName.push_back( tokens[0] );
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid server_name instruction in config file" ) );
 
-        // Remove the server name from the tokens vector.
-        tokens.erase( tokens.begin() );
-    }
+    this->serverName.push_back( tokens[0] ); // Add the server name to the server block.
+    tokens.erase( tokens.begin() ); // Remove the server name.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -167,21 +162,17 @@ void    Server::parseAutoindex ( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'autoindex' token.
 
-    for ( int i = 0; tokens[0] != ";"; i++ )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid 'Autoindex' instruction in config file" ) );
-        if ( i >= 1 )
-            throw ( std::runtime_error( "Error: Multiple 'Autoindex' instructions in server block." ) );
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid 'Autoindex' instruction in config file" ) );
 
-        if ( tokens[0] == "on" )
-            this->autoindex = true;
-        else if ( tokens[0] == "off" )
-            this->autoindex = false;
-        else
-            throw ( std::runtime_error( "Error: Invalid argument for 'Autoindex' instruction in location block." ) );
-        tokens.erase( tokens.begin() );
-    }
+    if ( tokens[0] == "on" ) 
+        { this->autoindex = true; }
+    else if ( tokens[0] == "off" ) 
+        { this->autoindex = false; }
+    else
+        { throw ( std::runtime_error( "Error: Invalid argument for 'Autoindex' instruction in location block." ) ); }
+
+    tokens.erase( tokens.begin() ); // Remove the 'on' or 'off' token.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
