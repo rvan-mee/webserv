@@ -54,13 +54,12 @@ std::string extractFilenameFromHTTPRequest(const std::string& httpRequest) {
     if (pos == std::string::npos) {
         return ""; // Header not found, or it's not a POST request.
     }
-    std::cout << "pos: " << pos << std::endl;
+
     // Find the position of "filename=" in the "Content-Disposition" header.
     pos = httpRequest.find("filename=", pos);
     if (pos == std::string::npos) {
         return ""; // "filename=" not found in the header.
     }
-    std::cout << "pos: " << pos << std::endl;
 
     // Extract the filename from the header.
     pos += 10; // Move past "filename=".
@@ -68,7 +67,6 @@ std::string extractFilenameFromHTTPRequest(const std::string& httpRequest) {
     if (endPos == std::string::npos) {
         return ""; // Filename closing quote not found.
     }
-    std::cout << "endpos: " << pos << std::endl;
 
     // Extract and return the filename.
     std::string filename = httpRequest.substr(pos, endPos - pos);
@@ -79,7 +77,6 @@ std::string extractContent(const std::string &inputText, const std::string &boun
   std::istringstream input(inputText);
     std::string line;
     std::ostringstream extractedContent;
-       // std::cout << "inputText" << inputText << std::endl;
 
     while (std::getline(input, line)) {
         if (line.find("Content-Type:") != std::string::npos)
@@ -87,14 +84,11 @@ std::string extractContent(const std::string &inputText, const std::string &boun
 
             while (std::getline(input, line))
             {
-               // std::cout << "line" << line << std::endl;
                 if (line.find(boundary) != std::string::npos)
                   break;
                 extractedContent << line << "\n";
             }
         }
-        // if (line.find(boundary) != std::string::npos)
-        //     break;
     }
     return extractedContent.str();
 }
@@ -111,33 +105,22 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, std::
     catch (std::exception &e){
     }
     //in case of file upload
-    // std::cout << "content type: " << _content_type << std::endl;
     if (_content_type.find("multipart/form-data") != std::string::npos) {        // You can now read or manipulate the file here if needed.
         try {
             std::string fileName = extractFilenameFromHTTPRequest(request);
             //give body input to python script
             std::string filePath = "uploads/" + fileName;
             std::cout << "filepaht: " << filePath << std::endl;
-	        //std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
             std::ofstream uploadFile(filePath);
             std::string content = extractContent(_message_body, "------");
-          //  std::cout << "content " << content << " end content" << std::endl;
-          //  if (!content.empty()) {
-             //   std::cout << content << std::endl;
-          //  } else {
-               // std::cout << "Content not found." << std::endl;
-           // }
             if (uploadFile.is_open()) {
                 // uploadFile.write(content.c_str(), content.size());
                 uploadFile << content;
                 uploadFile.close();
                 response.setMessageBodyText("File saved: " + filePath);
                 response.buildResponse(server);
-            } else {
+            } else
                 response.setError(400, "Bad Request");
-            }
-                //_cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
-            // isCgiRequest = true;
         }
         catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
@@ -164,11 +147,8 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
     }
     catch (std::exception &e){
     }
-    if (std::remove((server.getRoot() + _request_URI).c_str()) == 0) {
-        std::cout << "File deleted successfully: " << _request_URI << std::endl;
-    } else {
+    if (std::remove((server.getRoot() + _request_URI).c_str()) != 0)
         return (response.setError(500, "Internal Server Error"));
-    }
 }
 /**
  * @brief Check if request line has the right syntax and save the method & URI
@@ -227,13 +207,11 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config con
         setContentType(v[1]);
     if (v[0] == "Host")
     {
-        try
-        {
-            _host = config.getServer(v[1], port).getServerNames()[0]; //if server isn't found, default server will be the host and a 404 response will be returned
-            std::cout << "host: " << _host << std::endl;
+        try {
+            //if server isn't found, default server will be the host and a 404 response will be returned
+            _host = config.getServer(v[1], port).getServerNames()[0];
         }
-        catch(const std::exception& e)
-        {
+        catch(const std::exception& e) {
             std::cerr << e.what() << '\n';
             return (response.setError(400, "Bad Request"));
         }
@@ -255,11 +233,9 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     bool    emptyLineFound = false;
     bool    isCgiRequest = false;
     std::string request;
-	std::cout << "Request:" << std::endl;
 
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        std::cout << line << std::endl;
         request += line;
         request += "\n";
         if (!line.find("GET") || !line.find("POST") || !line.find("DELETE") || !line.find("HTTP/1.1")) // request line

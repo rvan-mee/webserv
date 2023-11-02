@@ -76,8 +76,6 @@ bool replace(std::string& str, const std::string& from, const std::string& to)
 void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
 {
 	//users must be able to input any
-	if (!server.getIndex().empty())
-		std::cout << "index: " << server.getIndex()[0] << std::endl;
 	if (!server.getIndex().empty() && !server.getIndex()[0].empty())
 	{
 		//check if index file exists
@@ -91,10 +89,7 @@ void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
 			_message_body = e;
 		}
 		else
-		{
-			std::cout << "Error opening file";
-
-		}
+			std::cerr << "Error opening file\n";
 	}
 	else
 	{
@@ -144,9 +139,6 @@ void HttpResponse::buildBodyDirectory(std::string directoryPath, Server server)
 		_message_body += "</table></hr></body>\n</html>\n";
 
 	}
-
-	std::cout << "buildBodyDirectory" << std::endl;
-	std::cout << "directoryPath: " << directoryPath << std::endl;
 }
 
 std::map<std::string, std::string> mimeTypes = {
@@ -180,7 +172,6 @@ std::string getContentTypeFromFile(const std::string& filename) {
 void HttpResponse::buildBodyFile(std::string requestedFile)
 {
 	//check if file exists
-	// std::cout << "requestedFile: " << requestedFile << std::endl;
 	_content_type = getContentTypeFromFile(requestedFile);
 	if (_content_type == "application/octet-stream")
 		return(setError(404, "Not Found"));
@@ -196,9 +187,7 @@ void HttpResponse::buildBodyFile(std::string requestedFile)
 			_message_body = e;
 		}
 		else
-		{
-			std::cout << "Error opening file";
-		}
+			std::cerr << "Error opening file\n";
 	}
 	else
 	{
@@ -213,12 +202,8 @@ void HttpResponse::buildBodyFile(std::string requestedFile)
 			_message_body = e;
 		}
 		else
-		{
-			std::cout << "Error opening file";
-		}
+			std::cerr << "Error opening file\n";
 	}
-	// std::cout << "buildBodyFile" << std::endl;
-	// std::cout << "requestedFile: " << requestedFile << std::endl;
 }
 
 void	 HttpResponse::setMessageBody( Server server )
@@ -239,9 +224,7 @@ void	 HttpResponse::setMessageBody( Server server )
 			_message_body = e;
 		}
 		else
-		{
-			std::cout << "Error opening file";
-		}
+			std::cerr << "Error opening file\n";
 	}
 	else if (_status_code != 200)
 	{
@@ -256,7 +239,7 @@ void	 HttpResponse::setMessageBody( Server server )
 		}
 		else
 		{
-			std::cout << "Error opening file";
+			std::cerr << "Error opening file\n";
 		}
 	}
 	else if (_message_body.empty())
@@ -271,9 +254,7 @@ void	 HttpResponse::setMessageBody( Server server )
 			_message_body = s;
 		}
 		else
-		{
-			std::cout << "Error opening file";
-		}
+			std::cerr << "Error opening file\n";
 	}
 }
 

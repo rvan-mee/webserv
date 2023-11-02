@@ -14,7 +14,6 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
         // Extract the substring between the last '/' and '.py'
         std::string result = _request_URI.substr(slashPos + 1, dotPyPos - slashPos - 1);
 
-        // std::cout << "Result: " << result << std::endl; 
         std::ifstream file(server.getLocation(".py").getAlias() + result + ".py");
 
         // Check if the file is open

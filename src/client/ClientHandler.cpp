@@ -283,8 +283,6 @@ void	ClientHandler::readFromSocket()
 		return ;
 	}
 
-	// std::cout << "Read: " << bytesRead << " amount of bytes" << std::endl;
-
 	buffer.insert(buffer.end(), newRead.begin(), newRead.begin() + bytesRead);
 	_requestData.totalBytesRead += bytesRead;
 }

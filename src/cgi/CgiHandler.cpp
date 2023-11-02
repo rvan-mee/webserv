@@ -168,7 +168,6 @@ void	CgiHandler::handleRead( void )
 
 void	CgiHandler::end()
 {
-	// std::cout << "Read everything from CGI" << std::endl;
 	_cgiOutput.push_back('\0');
 	_cgiOutput.shrink_to_fit();
 }
@@ -241,7 +240,7 @@ void	CgiHandler::startPythonCgi( HttpRequest& request, std::string script )
 	fcntl(pipeToCgi[1], F_SETFL, O_NONBLOCK);
 
 	// Fork process. Throws runtime_error on failure.
-	std::cout << GREEN "Starting CGI" RESET << std::endl;
+	std::cout << GREEN "Starting CGI\n" RESET;
 	_forkPid = fork();
 	if ( _forkPid == -1 )
 	{
