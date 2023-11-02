@@ -17,7 +17,5 @@ Left to do:
 curl --resolve example.com:8070:127.0.0.1 http://example.com:8070 
 
 
-content length bij python scripts
-
-in geval van niet bestaande host, doorgeven
-requests worden niet gesorteerd per port
+juiste upload_directory
+index listing aanpassen
