@@ -19,8 +19,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#define WRITE_SIZE 1024
-#define READ_SIZE 1024
+#define WRITE_SIZE 1024 * 1024
+#define READ_SIZE 1024 * 1024
 
 #define RESET   "\033[0m"
 #define GREEN   "\033[32m"      /* Green */
@@ -122,9 +122,12 @@ void	CgiHandler::clear( void )
 	_doneReading = false;
 }
 
-void	CgiHandler::setWriteBuffer( std::vector<char>& buffer )
+void	CgiHandler::setWriteBuffer( std::string& buffer )
 {
-	_cgiInput = buffer;
+	_cgiInput.clear();
+	for (size_t i = 0; i < buffer.size(); i++) {
+		_cgiInput.push_back(buffer[i]);
+	}
 }
 
 std::vector<char>&	CgiHandler::getReadBuffer( void )
@@ -193,7 +196,6 @@ void	CgiHandler::handleWrite( void )
 		_poll.removeEvent(_pipeWrite, POLLOUT);
 		close(_pipeWrite);
 		_pipeWrite = -1;
-		return ;
 	}
 }
 
@@ -300,7 +302,9 @@ void	CgiHandler::childInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
  * @param pipeToCgi 
  * @param pipeFromCgi 
  */
-void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
+#include <unistd.h> // for write
+
+void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2])
 {
 	// close unused pipe ends
 	close( pipeToCgi[0] ); // Close read end of pipeToCgi
@@ -308,5 +312,30 @@ void	CgiHandler::parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] )
 
 	// Set the pipe ends to the class variables
 	_pipeWrite = pipeToCgi[1]; // Write end of pipeToCgi. Send data to CGI script.
+	    // std::string httpRequest = "POST /upload.py HTTP/1.1\r\n"
+        //                     "Host: localhost:8070\r\n"
+        //                     "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0\r\n"
+        //                     "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\r\n"
+        //                     "Accept-Language: en-US,en;q=0.5\r\n"
+        //                     "Accept-Encoding: gzip, deflate, br\r\n"
+        //                     "Content-Type: multipart/form-data; boundary=---------------------------3081233490862001734699800631\r\n"
+        //                     "Content-Length: 220\r\n"
+        //                     "Origin: http://localhost:8070\r\n"
+        //                     "Connection: keep-alive\r\n"
+        //                     "Referer: http://localhost:8070/\r\n"
+        //                     "Upgrade-Insecure-Requests: 1\r\n"
+        //                     "Sec-Fetch-Dest: document\r\n"
+        //                     "Sec-Fetch-Mode: navigate\r\n"
+        //                     "Sec-Fetch-Site: same-origin\r\n"
+        //                     "Sec-Fetch-User: ?1\r\n\r\n" // Two newlines separate headers from the body
+        //                     "-----------------------------3081233490862001734699800631\r\n"
+        //                     "Content-Disposition: form-data; name=\"myFile\"; filename=\"hoi.txt\"\r\n"
+        //                     "Content-Type: text/plain\r\n\r\n"
+        //                     "hoi\r\n"
+        //                     "-----------------------------3081233490862001734699800631--";
+
+    // Write the HTTP request to the pipe (replace _pipeWrite with the actual pipe descriptor)
+    // write(_pipeWrite, request.c_str(), request.size());
+	// write(_pipeWrite, "POST /upload.py HTTP/1.1\r\nHost: localhost:8070\r\nContent-Type: multipart/form-data; boundary=---------------------------3081233490862001734699800631\r\nContent-Length: 220\r\n\r\n-----------------------------3081233490862001734699800631\r\nContent-Disposition: form-data; name=\"myFile\"; filename=\"hoi.txt\"\r\nContent-Type: text/plain\r\n\r\nhoi\r\n-----------------------------3081233490862001734699800631--", 367); // write to file descriptor directly
 	_pipeRead = pipeFromCgi[0]; // Read end of pipeFromCgi. Receive data from CGI script.
 }

@@ -38,9 +38,9 @@ class HttpRequest
 	public:
 		HttpRequest(CgiHandler& cgi, EventPoll& poll, int socketFd) : _cgi(cgi), _poll(poll), _socketFd(socketFd) {}
 
-		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Server server);
+		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Config config, int port);
 		void				isRequestLine(std::string line, HttpResponse &response);
-		void				isHeader(std::string line, HttpResponse &response);
+		void				isHeader(std::string line, HttpResponse &response, Config config, int port);
 		requestType			getMethod();
 		void				setMethod(requestType method);
 		void				setURI(std::string target);
@@ -48,9 +48,9 @@ class HttpRequest
 		void				setHost(std::string host);
 		void				addLineToBody(std::string line);
 		void				printAll();
-		void				parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest);
+		void				parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request);
 		void				parseGetRequest(HttpResponse &response, Server server);
-		void				parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest);
+		void				parsePostRequest(HttpResponse &response, Server server, std::string request);
 		void				parseDeleteRequest(HttpResponse &response, Server server);
 
 		void			setContentLength( long contentLength) { _contentLength = contentLength; };

@@ -304,10 +304,10 @@ void	ClientHandler::setTimeOutResponse( bool cgiRunning )
 	HttpResponse	timeOutResponse;
 
 	if (cgiRunning)
-		timeOutResponse.setError(502.1, "CGI application timeout");
+		timeOutResponse.setError(502, "502.1 CGI application timeout");
 	else
 		timeOutResponse.setError(408, "Request Timeout");
-	_response = timeOutResponse.buildResponse(_config.getServer(_requestData.host)); // , _port
+	_response = timeOutResponse.buildResponse(_config.getServer(_requestData.host, _port));
 	_doneWriting = false;
 }
 
@@ -420,7 +420,7 @@ void	ClientHandler::handleRead( int fd )
 		HttpResponse	bodyTooLarge;
 
 		bodyTooLarge.setError(413, "Content Too Large");
-		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host)); // , _port
+		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host, _port));
 		_poll.addEvent(_socketFd, POLLOUT);
 		_terminateAfterResponse = true;
 		_doneWriting = false;
@@ -430,7 +430,7 @@ void	ClientHandler::handleRead( int fd )
 	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
 	_request.setContentLength(_requestData.buffer.size() - _requestData.headerSize);
-	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer(_requestData.host));
+	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config, _port);
 	_doneWriting = false;
 }
 
@@ -451,7 +451,6 @@ void	ClientHandler::handleWrite( int fd )
 	ssize_t bytesSent = send(_socketFd, _response.c_str(), bytesToWrite, 0);
 	if (bytesSent < 0)
 		throw ( std::runtime_error("Failed to send response to client") );
-
 	_response.erase(0, bytesSent);
 
 	// if all data hasn't been sent yet:
@@ -484,7 +483,7 @@ void	ClientHandler::handleWrite( int fd )
 		HttpResponse	bodyTooLarge;
 
 		bodyTooLarge.setError(413, "Content Too Large");
-		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host)); // , _port
+		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host, _port));
 		_terminateAfterResponse = true;
 		_doneWriting = true;
 	}

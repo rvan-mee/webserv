@@ -49,7 +49,7 @@ class CgiHandler
 		CgiHandler( EventPoll& poll, Config& config, int port, std::string& clientAddress );
 		~CgiHandler();
 	
-		void				setWriteBuffer( std::vector<char>& buffer );
+		void				setWriteBuffer( std::string& buffer );
 		std::vector<char>&	getReadBuffer( void );
 
 		bool	isEvent(int fd);

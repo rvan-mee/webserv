@@ -24,12 +24,12 @@ bool isDirectory(const std::string& path) {
 void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
 {
     try {
-        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowGet() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowGet() == 0)
         {
             return (response.setError(405, "Method Not Allowed"));
         }
     }
-    catch (std::exception &e){
+    catch (std::exception &e){ 
     }
     if ( _request_URI == "/redirect" )
     {
@@ -45,25 +45,99 @@ void		HttpRequest::parseGetRequest(HttpResponse &response, Server server)
     }
     else if (_request_URI != "/")
         return (response.buildBodyFile(server.getRoot() + _request_URI));
+    response.buildResponse(server);
+}
+
+std::string extractFilenameFromHTTPRequest(const std::string& httpRequest) {
+    // Find the position of "Content-Disposition" in the HTTP request.
+    std::size_t pos = httpRequest.find("Content-Disposition");
+    if (pos == std::string::npos) {
+        return ""; // Header not found, or it's not a POST request.
+    }
+    std::cout << "pos: " << pos << std::endl;
+    // Find the position of "filename=" in the "Content-Disposition" header.
+    pos = httpRequest.find("filename=", pos);
+    if (pos == std::string::npos) {
+        return ""; // "filename=" not found in the header.
+    }
+    std::cout << "pos: " << pos << std::endl;
+
+    // Extract the filename from the header.
+    pos += 10; // Move past "filename=".
+    std::size_t endPos = httpRequest.find("\"", pos);
+    if (endPos == std::string::npos) {
+        return ""; // Filename closing quote not found.
+    }
+    std::cout << "endpos: " << pos << std::endl;
+
+    // Extract and return the filename.
+    std::string filename = httpRequest.substr(pos, endPos - pos);
+    return filename;
+}
+
+std::string extractContent(const std::string &inputText, const std::string &boundary) {
+  std::istringstream input(inputText);
+    std::string line;
+    std::ostringstream extractedContent;
+       // std::cout << "inputText" << inputText << std::endl;
+
+    while (std::getline(input, line)) {
+        if (line.find("Content-Type:") != std::string::npos)
+        {
+
+            while (std::getline(input, line))
+            {
+               // std::cout << "line" << line << std::endl;
+                if (line.find(boundary) != std::string::npos)
+                  break;
+                extractedContent << line << "\n";
+            }
+        }
+        // if (line.find(boundary) != std::string::npos)
+        //     break;
+    }
+    return extractedContent.str();
 }
 
 
-void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool& isCgiRequest)
+void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, std::string request)
 {
     try {
-        if (server.getLocation(_request_URI).getAllowPost() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowPost() == false)
+        {
             return (response.setError(405, "Method Not Allowed"));
+        }
     }
     catch (std::exception &e){
     }
     //in case of file upload
     // std::cout << "content type: " << _content_type << std::endl;
-    if (_content_type == "multipart/form-data") {
-        // You can now read or manipulate the file here if needed.
+    if (_content_type.find("multipart/form-data") != std::string::npos) {        // You can now read or manipulate the file here if needed.
         try {
+            std::string fileName = extractFilenameFromHTTPRequest(request);
             //give body input to python script
-            _cgi.startPythonCgi(*this, server.getLocation(".py").getAlias() + "upload.py");
-            isCgiRequest = true;
+            std::string filePath = "uploads/" + fileName;
+            std::cout << "filepaht: " << filePath << std::endl;
+	        //std::ofstream uploadFile(filePath, std::ios::out | std::ios::binary);
+            std::ofstream uploadFile(filePath);
+            std::string content = extractContent(_message_body, "------");
+          //  std::cout << "content " << content << " end content" << std::endl;
+          //  if (!content.empty()) {
+             //   std::cout << content << std::endl;
+          //  } else {
+               // std::cout << "Content not found." << std::endl;
+           // }
+            if (uploadFile.is_open()) {
+                // uploadFile.write(content.c_str(), content.size());
+                uploadFile << content;
+                uploadFile.close();
+                response.setMessageBodyText("File saved: " + filePath);
+                response.buildResponse(server);
+            } else {
+                response.setError(400, "Bad Request");
+            }
+                //_cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+            // isCgiRequest = true;
         }
         catch (std::exception &e) {
             std::cerr << e.what() << std::endl;
@@ -82,7 +156,7 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
         return (response.setError(204, "No Content"));
     }
      try {
-        if (server.getLocation(_request_URI).getAllowDelete() == false)
+        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowDelete() == false)
         {
             _poll.addEvent(_socketFd, POLLOUT);
             return (response.setError(405, "Method Not Allowed"));
@@ -133,7 +207,7 @@ void		HttpRequest::isRequestLine(std::string line, HttpResponse &response)
  * 
  * @param line header line
  */
-void		HttpRequest::isHeader(std::string line, HttpResponse &response)
+void		HttpRequest::isHeader(std::string line, HttpResponse &response, Config config, int port)
 {
     std::string s;
     std::stringstream ss(line);
@@ -152,7 +226,18 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
     if (v[0] == "Content-Type")
         setContentType(v[1]);
     if (v[0] == "Host")
-        setHost(v[1]);
+    {
+        try
+        {
+            _host = config.getServer(v[1], port).getServerNames()[0]; //if server isn't found, default server will be the host and a 404 response will be returned
+            std::cout << "host: " << _host << std::endl;
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            return (response.setError(400, "Bad Request"));
+        }
+    }
 }
 
 /**
@@ -160,7 +245,7 @@ void		HttpRequest::isHeader(std::string line, HttpResponse &response)
  * 
  * @param buffer  request
  */
-std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Server server)
+std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer, Config config, int port)
 {
 	std::string file(buffer.begin(), buffer.end());
     std::stringstream ss(file);
@@ -169,32 +254,36 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     HttpResponse response;
     bool    emptyLineFound = false;
     bool    isCgiRequest = false;
-	// std::cout << "Request:" << std::endl;
+    std::string request;
+	std::cout << "Request:" << std::endl;
+
     while (std::getline(ss, line)) // Use newline '\n' as the delimiter
     {
-        // std::cout << line << std::endl;
-        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE")) // request line
+        std::cout << line << std::endl;
+        request += line;
+        request += "\n";
+        if (!line.find("GET") || !line.find("POST") || !line.find("DELETE") || !line.find("HTTP/1.1")) // request line
             isRequestLine(line, response);
         else if (line == "\r" || line == "") // empty line (i.e., a line with nothing preceding the CRLF)
             emptyLineFound = true;
         else if(emptyLineFound == false) // header line
-            isHeader(line, response);
+            isHeader(line, response, config, port);
         else // body line
             addLineToBody(line);
     }
 
     // printAll();
     if (_request_URI.size() >= 3 && _request_URI.substr(_request_URI.size() - 3, 3) == ".py") {
-        parseCgiRequest(response, server, isCgiRequest);
+        parseCgiRequest(response, config.getServer(_host, port), isCgiRequest, request);
     }
-    else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(server.getRoot() +_request_URI))) {
-        parseGetRequest(response, server);
+    else if (_request_method == GET && (_request_URI == "/redirect" || pathExists(config.getServer(_host, port).getRoot() +_request_URI))) {
+        parseGetRequest(response, config.getServer(_host, port));
     } 
-    else if (_request_method == POST && pathExists(server.getRoot() +_request_URI)) {
-        parsePostRequest(response, server, isCgiRequest);
+    else if (_request_method == POST && pathExists(config.getServer(_host, port).getRoot() +_request_URI)) {
+        parsePostRequest(response, config.getServer(_host, port), request);
     }
     else if (_request_method == DELETE) {
-        parseDeleteRequest(response, server);
+        parseDeleteRequest(response, config.getServer(_host, port));
     }
     else if (_request_method == GET || _request_method == POST) {
         // Handle non-existent path
@@ -205,5 +294,5 @@ std::string    HttpRequest::parseRequestAndGiveResponse(std::vector<char> buffer
     // the response to the socket instead of waiting for the CGi to finish.
     if (!isCgiRequest)
         _poll.addEvent(_socketFd, POLLOUT);
-    return (response.buildResponse(server));
+    return (response.buildResponse(config.getServer(_host, port)));
 }

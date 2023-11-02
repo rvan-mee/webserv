@@ -251,6 +251,8 @@ void    Config::parseServerBlock( std::vector<std::string> &tokens )
 void    Config::parseListen( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'listen' token.
+    if ( tokens[0] == ";" ) // If there is no port number, throw an error.
+        throw ( std::runtime_error( "Invalid listen instruction in config file" ) );
     while ( tokens[0] != ";" )
     {
         if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
@@ -274,22 +276,26 @@ void    Config::parseListen( std::vector<std::string> &tokens )
 void	Config::parseRoot( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'root' token.
-    while ( tokens[0] != ";" )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid root instruction in config file" ) );
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid root instruction in config file" ) );
 
-        this->root = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    this->root = tokens[0];
+    tokens.erase( tokens.begin() ); // Remove the root path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
+/**
+ * @brief Parses the 'client_max_body_size' instruction
+ * @param tokens Vector with tokens
+ * @throw std::runtime_error if the instruction is invalid.
+*/
 void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'client_max_body_size' token.
+    if ( tokens[0] == ";" ) // If there is no number, throw an error.
+        throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
 
-    long number = 0;
+    unsigned long number = 0;
     while ( tokens[0] != ";")
     {
         size_t i = 0;
@@ -304,10 +310,10 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
         }
         if ( number < 0 )
             throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
-        /* Now we're going to check whether the current character is a semicolon,
-        or a 'K' or 'M'. If it's a semicolon, we're done. If it's a 'K' or 'M',
+        /* Now we're going to check whether the current character is a end of string,
+        or a 'K' or 'M'. If it's a EOS, we're done. If it's a 'K' or 'M',
         we're going to multiply the number by 1024 or 1024 * 1024 respectively. */
-        if ( tokens[0][i] == ';')
+        if ( tokens[0][i] == '\0')
             break;
         else if ( tokens[0][i] == 'K' )
             number *= 1024;
@@ -315,13 +321,13 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
             number *= 1024 * 1024;
         else
             throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
-        i++;
-        if ( tokens[0][i] != ';' )
+
+        tokens.erase( tokens.begin() ); // Remove the number from the tokens vector.
+        if ( tokens[0][0] != ';' || tokens[0].size() > 1 ) // If the next token is not a semicolon, throw an error.
             throw ( std::runtime_error( "Invalid client_max_body_size instruction in config file" ) );
         
         this->clientMaxBodySize = number; // Set the clientMaxBodySize variable.
 
-        tokens.erase( tokens.begin() ); // Remove the number from the tokens vector.
     }
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
@@ -333,36 +339,79 @@ void    Config::parseClientMaxBodySize( std::vector<std::string> &tokens )
 /**
  * @brief Get the server block with the given server name
  * @param serverName The name of the server block
+ * @param port The port of the server block
  * @return The server block corresponding to the given server name. If the
  * server name is not found, the default server is returned.
  * @throw std::runtime_error if 'serverName' is not found, 
  * and also if no default server is found.
  */
-Server &Config::getServer( std::string serverName )
+Server &Config::getServer( std::string serverName, int port )
 {
     std::vector<Server>::iterator       defaultServer;
+    std::vector<Server>::iterator       serverMatchPort;
     std::vector<Server>::iterator       it;
     std::vector<std::string>::iterator  it2;
     std::vector<std::string>            serverNames;
+    int                                 serverPort;
+    bool                                portMatchFound;
 
+    /* 
+    We set the defaultServer and serverMatchPort to the end of the servers vector. 
+    If we find a server with a server_name "_", we'll set defaultServer to that server.
+    If we don't find a server with a server_name "_", it means there is no default server.
+    */
     defaultServer = this->servers.end();
+    serverMatchPort = this->servers.end();
+    portMatchFound = false;
+
+    /* 
+    Order of return:
+    1. If exact match is found. Return that server.
+    2. If no exact match is found, but a server with the same port is found. 
+    Return the first server with the same port.
+    3. If no exact match is found, and no server with the same port is found, 
+    but a default server is found with matching port. Return the default server.
+    4. If no exact match is found, and no server with the same port is found, 
+    and no default server is found. Throw an error.
+    */
+
+    // First 'for' loop loops through all servers
     for ( it = this->servers.begin(); it != this->servers.end(); it++ )
     {
+        // Get the port and server names of the current server
+        serverPort = it->getListen()[0];
         serverNames = it->getServerNames();
+
+        // Second 'for' loop loops through all server names of the current server
         for ( it2 = serverNames.begin(); it2 != serverNames.end(); it2++ )
         {
-            if ( *it2 == serverName ) {
+            // 1. Return server if exact match found
+            if ( *it2 == serverName && serverPort == port )
                 return ( *it );
+
+            // Set serverMatchPort to the current server if port matches
+            if ( serverPort == port && portMatchFound == false)
+            {
+                serverMatchPort = it;
+                portMatchFound = true;
             }
-            if ( *it2 == "_" ) {
+            
+            // Set defaultServer to the current server if server_name is "_" and port matches
+            if ( *it2 == "_" && serverPort == port )
                 defaultServer = it;
-            }
         }
     }
+
+    // 2. Return first server with matching port
+    if ( serverMatchPort != this->servers.end() )
+        return ( *serverMatchPort );
+
+    // 3. Return default server with matching port
     if ( defaultServer != this->servers.end() )
         return ( *defaultServer );
-    else
-        throw ( std::runtime_error( "Error: No default server found." ) );
+
+    // 4. Throw error
+    throw ( std::runtime_error( "Error: No server found." ) );
 }
 
 /**

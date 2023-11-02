@@ -68,8 +68,7 @@ void    Server::parseLocationBlock( std::vector<std::string> &tokens )
         throw ( std::runtime_error( "Invalid Location block in config file" ) );
     newLocation.parseLocationURL( tokens );
 
-    /* Remove the opening bracket from the vector. */
-    tokens.erase( tokens.begin() );
+    tokens.erase( tokens.begin() );  /* Remove the opening bracket from the vector. */
 
     // Loop through the tokens vector and parse the Location block.
     while ( tokens[0] != "}" )
@@ -110,6 +109,8 @@ void    Server::parseLocationBlock( std::vector<std::string> &tokens )
 void    Server::parseListen( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'listen' token.
+    if ( tokens[0] == ";" ) // If there is no port number, throw an error.
+        throw ( std::runtime_error( "Invalid listen instruction in config file" ) );
     while ( tokens[0] != ";" )
     {
         if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
@@ -154,14 +155,11 @@ void	Server::parseServerName( std::vector<std::string> &tokens )
 void	Server::parseRoot( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'root' token.
-    while ( tokens[0] != ";" )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid root instruction in config file" ) );
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid root instruction in config file" ) );
 
-        this->root = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    this->root = tokens[0];
+    tokens.erase( tokens.begin() ); // Remove the root path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -221,7 +219,10 @@ void	Server::parseErrorPage( std::vector<std::string> &tokens )
     while ( tempTokens.size() > 0 )
     {
         try {
-            this->errorPage.insert( std::pair<int, std::string>( std::stoi( tempTokens[0] ), errorPageUrl ) );
+            size_t i = 0;
+            this->errorPage.insert( std::pair<int, std::string>( std::stoi( tempTokens[0], &i, 10 ), errorPageUrl ) );
+            if ( i != tempTokens[0].size() )
+                throw ( std::runtime_error( "Invalid error code in config file" ) );
         }
         catch (const std::exception& e) {
             throw ( std::runtime_error( "Invalid error code in config file" ) );
@@ -238,16 +239,11 @@ void    Server::parseUploadsDir( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'uploads_dir' token.
 
-    for ( int i = 0; tokens[0] != ";"; i++ )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
             throw ( std::runtime_error( "Invalid uploads_dir instruction in config file" ) );
-        if ( i >= 1 )
-            throw ( std::runtime_error( "Error: Multiple 'Uploads_dir' instructions in server block." ) );
 
-        this->uploadsDir = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    this->uploadsDir = tokens[0]; // Add the uploads_dir path to the server block.
+    tokens.erase( tokens.begin() ); // Remove the uploads_dir path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -259,15 +255,11 @@ void	Server::parseIndex( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'index' token.
 
-    // Loop through all tokens until the ';' token and add them to the index vector.
-    while ( tokens[0] != ";" )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid Index instruction in config file" ) );
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid Index instruction in config file" ) );
 
-        this->index.push_back( tokens[0] );
-        tokens.erase( tokens.begin() );
-    }
+    this->index.push_back( tokens[0] ); // Add the index path to the index vector.
+    tokens.erase( tokens.begin() ); // Remove the index path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -280,15 +272,11 @@ void	Server::parseAccessLog( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'access_log' token.
     
-    for ( int i = 0; tokens[0] != ";"; i++ )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid access_log instruction in config file" ) );
-        if ( i >= 1 ) // If there is more than one 'access_log' instruction, throw an error.
-            throw ( std::runtime_error( "Error: Multiple 'access_log' instructions in server block." ) );
-        this->accessLog = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid access_log instruction in config file" ) );
+
+    this->accessLog = tokens[0]; // Add the access_log path to the server block.
+    tokens.erase( tokens.begin() ); // Remove the access_log path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -301,15 +289,11 @@ void	Server::parseErrorLog( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'error_log' token.
 
-    for ( int i = 0; tokens[0] != ";"; i++ )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid error_log instruction in config file" ) );
-        if ( i >= 1 )
-            throw ( std::runtime_error( "Error: Multiple 'error_log' instructions in server block." ) );
-        this->errorLog = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid error_log instruction in config file" ) );
+
+    this->errorLog = tokens[0]; // Add the error_log path to the server block.
+    tokens.erase( tokens.begin() ); // Remove the error_log path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
@@ -321,15 +305,11 @@ void    Server::parseRedirect( std::vector<std::string> &tokens )
 {
     tokens.erase( tokens.begin() ); // Remove the 'redirect' token.
 
-    for ( int i = 0; tokens[0] != ";"; i++ )
-    {
-        if ( tokens.size() <= 1 ) // If there is no ';' token, throw an error.
-            throw ( std::runtime_error( "Invalid 'redirect' instruction in config file" ) );
-        if ( i >= 1 )
-            throw ( std::runtime_error( "Error: Multiple 'redirect' instructions in location block." ) );
-        this->redirect = tokens[0];
-        tokens.erase( tokens.begin() );
-    }
+    if ( tokens[0] == ";" || tokens.size() <= 1 || tokens[1] != ";" ) // Error check
+        throw ( std::runtime_error( "Invalid 'redirect' instruction in config file" ) );
+
+    this->redirect = tokens[0]; // Add the redirect path to the server block.
+    tokens.erase( tokens.begin() ); // Remove the redirect path.
     tokens.erase( tokens.begin() ); // Remove the ';' token.
 }
 
