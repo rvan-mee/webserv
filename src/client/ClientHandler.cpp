@@ -374,7 +374,9 @@ void	ClientHandler::handleRead( int fd )
 	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
 
-	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com"));
+	// the parseRequest should decide if we enter a CGI or not
+	// Go into CGI or create a response
+	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com", 8080));
 	_doneWriting = false;
 	// std::cout << "Response: " << std::endl;
 	// std::cout << _response << std::endl;
