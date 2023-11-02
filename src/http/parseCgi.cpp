@@ -2,7 +2,7 @@
 #include <Server.hpp>
 #include <EventPoll.hpp>
 
-void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest)
+void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& isCgiRequest, std::string request)
 {
     if (_request_method == 0 || _request_method == 1)
     {
@@ -21,8 +21,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
         if (file.is_open()) {
             // You can now read or manipulate the file here if needed.
             try {
-
-                // _cgi.setWriteBuffer(); // TODO: if you want to give the CGI some info to work with 
+                _cgi.setWriteBuffer(request); // TODO: if you want to give the CGI some info to work with 
                 _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
                 isCgiRequest = true;
                 
@@ -36,7 +35,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             file.close(); // Don't forget to close the file when you're done with it.
             return ;
         } else {
-            return (response.setError(404, "The requested resource was not found"));
+            return (response.setError(404, "Not Found"));
         }
     }
     else

@@ -222,7 +222,7 @@ static bool	allRequestDataRead( t_requestData& requestData )
 	
 	requestData.prevBuffer.clear();
 	requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
-	requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	// requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
 	return (true);
 }
 
@@ -262,10 +262,10 @@ void	ClientHandler::setTimeOutResponse( bool cgiRunning )
 	HttpResponse	timeOutResponse;
 
 	if (cgiRunning)
-		timeOutResponse.setError(502.2, "CGI application timeout");
+		timeOutResponse.setError(502, "502.1 CGI application timeout");
 	else
 		timeOutResponse.setError(408, "Request Timeout");
-	_response = timeOutResponse.buildResponse(_config.getServer("_"));
+	_response = timeOutResponse.buildResponse(_config.getServer("_", _port));
 	_doneWriting = false;
 }
 
@@ -376,7 +376,7 @@ void	ClientHandler::handleRead( int fd )
 
 	// the parseRequest should decide if we enter a CGI or not
 	// Go into CGI or create a response
-	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer("example.com", 8080));
+	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config, _port);
 	_doneWriting = false;
 	// std::cout << "Response: " << std::endl;
 	// std::cout << _response << std::endl;
@@ -399,7 +399,6 @@ void	ClientHandler::handleWrite( int fd )
 	ssize_t bytesSent = send(_socketFd, _response.c_str(), bytesToWrite, 0);
 	if (bytesSent < 0)
 		throw ( std::runtime_error("Failed to send response to client") );
-
 	_response.erase(0, bytesSent);
 
 	// if all data hasn't been sent yet:

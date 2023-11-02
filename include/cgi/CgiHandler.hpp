@@ -41,7 +41,7 @@ class CgiHandler
 		CgiHandler( EventPoll& poll );
 		~CgiHandler();
 	
-		void				setWriteBuffer( std::vector<char>& buffer );
+		void				setWriteBuffer( std::string& buffer );
 		std::vector<char>&	getReadBuffer( void );
 
 		bool	isEvent(int fd);

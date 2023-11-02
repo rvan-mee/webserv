@@ -261,7 +261,7 @@ void	 HttpResponse::setMessageBody( Server server )
 	}
 	else if (_message_body.empty())
 	{
-		std::ifstream f("src/http/index.html"); //taking file as inputstream
+		std::ifstream f("html/index.html"); //taking file as inputstream
 		std::string s;
 		if (f.is_open())
 		{
@@ -275,6 +275,11 @@ void	 HttpResponse::setMessageBody( Server server )
 			std::cout << "Error opening file";
 		}
 	}
+}
+
+void	 HttpResponse::setMessageBodyText( std::string messageBody )
+{
+	_message_body = messageBody;
 }
 
 /**
