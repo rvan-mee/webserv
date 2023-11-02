@@ -22,6 +22,9 @@
 #define WRITE_SIZE 1024
 #define READ_SIZE 1024
 
+#define RESET   "\033[0m"
+#define GREEN   "\033[32m"      /* Green */
+
 CgiHandler::CgiHandler( EventPoll& poll ) :
 	_poll(poll),
 	_pipeRead(-1),
@@ -41,7 +44,6 @@ CgiHandler::~CgiHandler()
 		close(_pipeWrite);
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
 		kill(_forkPid, SIGKILL);
-		std::cout << "Killing child deconstructor" << std::endl;
 	}
 	_poll.removeEvent(_pipeWrite, POLLOUT);
 	_poll.removeEvent(_pipeRead, POLLIN);
@@ -61,8 +63,8 @@ void	CgiHandler::clear( void )
 	}
 	if (_forkPid != -1 && waitpid(_forkPid, NULL, WNOHANG) == 0) {
 		kill(_forkPid, SIGKILL);
-		_forkPid = -1;
 	}
+	_forkPid = -1;
 	_cgiInput.clear();
 	_cgiOutput.clear();
 	_bytesRead = 0;
@@ -106,6 +108,8 @@ void	CgiHandler::handleRead( void )
 	currentBytesRead = read(_pipeRead, newRead.data(), READ_SIZE);
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
+
+	std::cout << "bytes read from cgi: " << currentBytesRead << std::endl;
 
 	_cgiOutput.insert(_cgiOutput.end(), newRead.begin(), newRead.begin() + currentBytesRead);
 	_bytesRead += currentBytesRead;
@@ -167,7 +171,8 @@ void	CgiHandler::startPythonCgi( std::string script )
 	int pipeFromCgi[2];
 	
 	// temp
-	char *args[] = { "python", const_cast<char*>(script.c_str()), NULL };
+	char	python[] = "python"; // execve cannot take a char const * char * so we have to do a lil workaround
+	char	*args[] = { python, const_cast<char*>(script.c_str()), NULL };
 
 	// Init pipes. Throws runtime_error on failure.
 	if ( pipe( pipeToCgi ) == -1)
@@ -186,6 +191,7 @@ void	CgiHandler::startPythonCgi( std::string script )
 	fcntl(pipeToCgi[1], F_SETFL, O_NONBLOCK);
 
 	// Fork process. Throws runtime_error on failure.
+	std::cout << GREEN "Starting CGI" RESET << std::endl;
 	_forkPid = fork();
 	if ( _forkPid == -1 )
 	{

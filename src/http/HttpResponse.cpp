@@ -180,7 +180,7 @@ std::string getContentTypeFromFile(const std::string& filename) {
 void HttpResponse::buildBodyFile(std::string requestedFile)
 {
 	//check if file exists
-	std::cout << "requestedFile: " << requestedFile << std::endl;
+	// std::cout << "requestedFile: " << requestedFile << std::endl;
 	_content_type = getContentTypeFromFile(requestedFile);
 	if (_content_type == "application/octet-stream")
 		return(setError(404, "Not Found"));
@@ -217,8 +217,8 @@ void HttpResponse::buildBodyFile(std::string requestedFile)
 			std::cout << "Error opening file";
 		}
 	}
-	std::cout << "buildBodyFile" << std::endl;
-	std::cout << "requestedFile: " << requestedFile << std::endl;
+	// std::cout << "buildBodyFile" << std::endl;
+	// std::cout << "requestedFile: " << requestedFile << std::endl;
 }
 
 void	 HttpResponse::setMessageBody( Server server )
@@ -297,6 +297,12 @@ std::string HttpResponse::buildResponse( Server server)
 	str += " ";
 	str += _reason_phrase;
 	str += "\r\n";
+	if (!_redirect.empty())
+	{
+		str += "Location: ";
+		str += _redirect;
+		str += "\r\n";
+	}
 	str += "Content-Type: ";
 	str += _content_type;
 	if (!server.getServerNames()[0].empty())
