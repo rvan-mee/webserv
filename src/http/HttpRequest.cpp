@@ -1,7 +1,7 @@
 #include <HttpRequest.hpp>
 #include <poll.h>
 
-HttpRequest::requestType	HttpRequest::getMethod()
+requestType	HttpRequest::getMethod()
 {
     if (_request_method == GET)
         std::cout << "GET";

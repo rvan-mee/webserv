@@ -53,7 +53,6 @@ class ClientHandler
 
 		int					_socketFd;
 		int					_port;
-		CgiHandler			_cgi;
 		t_requestData		_requestData;
 		std::string			_response;
 		Config&				_config;
@@ -63,11 +62,13 @@ class ClientHandler
 		bool				_pollHupSet;
 		bool				_timeOutSet;
 		bool				_terminateAfterResponse;
+		std::string			_clientAddress;
+		CgiHandler			_cgi;
 		serverTime			_timeOutStart;
 		HttpRequest			_request;
 
 	public:
-		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port );
+		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port, char* clientAddress );
 		~ClientHandler();
 
 		int		getSocketFd( void ) { return (_socketFd); };

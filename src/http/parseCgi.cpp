@@ -23,7 +23,7 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             try {
 
                 // _cgi.setWriteBuffer(); // TODO: if you want to give the CGI some info to work with 
-                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+                _cgi.startPythonCgi(*this, server.getLocation(".py").getAlias() + result + ".py");
                 isCgiRequest = true;
                 
             }

@@ -21,6 +21,7 @@
 #include <unistd.h> // close()
 #include <iostream> 
 #include <algorithm>
+#include <arpa/inet.h>
 
 #include <chrono>
 #include <thread>
@@ -158,7 +159,10 @@ void	HttpServer::initServer( Config &config )
 
 			if ( this->isServerSocket(eventFd) )
 			{
-				int	clientSocket = accept( eventFd, NULL, NULL );
+				sockaddr_in	socketInfo;
+				socklen_t	socketLen = sizeof(socketInfo);
+
+				int	clientSocket = accept( eventFd, (struct sockaddr *)&socketInfo, &socketLen);
 				if ( clientSocket < 0 ) {
 					closeServerSockets();
 					throw ( std::runtime_error( "Failed to accept connection" ) );
@@ -167,9 +171,11 @@ void	HttpServer::initServer( Config &config )
 				/* Add the client socket to the poll list */
 				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
+				char clientAddress[INET_ADDRSTRLEN];
+				inet_ntop( AF_INET, &socketInfo.sin_addr, clientAddress, INET_ADDRSTRLEN );
 
-				std::cout << GREEN "Accepted a new client" RESET "\n";
-				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config, _socketPortMap.at(eventFd));
+				std::cout << GREEN "Accepted a new client: ip " << clientAddress << RESET "\n";
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config, _socketPortMap.at(eventFd), clientAddress);
 				_eventList.push_back(newEvent);
 				continue ;
 			}

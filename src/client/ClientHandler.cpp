@@ -34,10 +34,9 @@ typedef enum	e_readState {
 	BODY_TOO_LARGE,
 }				t_readState;
 
-ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port ) :
+ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port, char* clientAddress ) :
 	_socketFd(socketFd),
 	_port(port),
-	_cgi(poll),
 	_config(config),
 	_poll(poll),
 	_doneReading(false),
@@ -45,6 +44,8 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int
 	_pollHupSet(false),
 	_timeOutSet(false),
 	_terminateAfterResponse(false),
+	_clientAddress(clientAddress),
+	_cgi(poll, config, port, _clientAddress),
 	_request(_cgi, _poll, _socketFd)
 {
 	this->clear();
@@ -428,7 +429,7 @@ void	ClientHandler::handleRead( int fd )
 
 	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
-
+	_request.setContentLength(_requestData.buffer.size() - _requestData.headerSize);
 	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config.getServer(_requestData.host));
 	_doneWriting = false;
 }

@@ -62,7 +62,7 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, bool&
         // You can now read or manipulate the file here if needed.
         try {
             //give body input to python script
-            _cgi.startPythonCgi(server.getLocation(".py").getAlias() + "upload.py");
+            _cgi.startPythonCgi(*this, server.getLocation(".py").getAlias() + "upload.py");
             isCgiRequest = true;
         }
         catch (std::exception &e) {
