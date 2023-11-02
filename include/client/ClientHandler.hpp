@@ -18,6 +18,10 @@
 #include <HttpRequest.hpp>
 #include <Config.hpp>
 #include <string>
+#include <chrono>
+#include <ctime> 
+
+#define REQUEST_TIMEOUT 10000000 // 10 seconds
 
 typedef struct	s_requestData {
 	std::vector<char>	buffer;
@@ -33,6 +37,9 @@ typedef struct	s_requestData {
 	int					totalBytesRead;
 }	t_requestData;
 
+
+typedef std::chrono::steady_clock::time_point serverTime;
+
 class ClientHandler
 {
 	private:
@@ -40,8 +47,11 @@ class ClientHandler
 
 		void	readFromSocket( void );
 		void	prepareNextRequest( void );
+		void	resetTimeOut( void );
+		void	setTimeOutResponse( bool cgiRunning );
 
 		int					_socketFd;
+		int					_port;
 		CgiHandler			_cgi;
 		t_requestData		_requestData;
 		std::string			_response;
@@ -50,15 +60,24 @@ class ClientHandler
 		bool				_doneReading;
 		bool				_doneWriting;
 		bool				_pollHupSet;
+		bool				_timeOutSet;
+		serverTime			_timeOutStart;
 		HttpRequest			_request;
 
 	public:
-		ClientHandler( int socketFd, EventPoll& poll, Config& config );
+		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port );
 		~ClientHandler();
 
-		bool	doneWithRequest( void );
-		bool	isEvent( int fd );
-		bool	isSocketFd( int fd );
+		int		getSocketFd( void ) { return (_socketFd); };
+		bool	isDoneWriting( void ) { return (_doneWriting); };
+		bool	isTimedOut( void ) { return (_timeOutSet); } ;
+		bool	doneWithRequest( void ) { return (_doneReading && _cgi.isRunning() == false); };
+		bool	isCgiRunning( void ) { return (_cgi.isRunning()); } ;
+		bool	isSocketFd( int fd ) { return (fd == _socketFd); };
+		bool	isEvent( int fd ) { return (fd == _socketFd || _cgi.isEvent(fd)); };
+		bool	getHangup( void ) { return (_pollHupSet); }
+
+		bool	checkTimeOut( serverTime& currentTime );
 		void	handleRead( int fd );
 		void	handleWrite( int fd );
 		void	clear( void );

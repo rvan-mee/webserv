@@ -17,8 +17,8 @@
 #include <iostream>
 
 #define READ_SIZE 1024 * 1024
-#define WRITE_SIZE 1024 * 16
-// #define WRITE_SIZE 1024 * 1024 * 16 is faster but doesn't have nice animation in browser
+// #define WRITE_SIZE 1024 * 16 // Slow write to show that the server is non-blocking
+#define WRITE_SIZE 1024 * 1024 * 16
 
 #define READ 0
 #define WRITE 1
@@ -28,31 +28,24 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
-ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config ) :
+ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port ) :
 	_socketFd(socketFd),
+	_port(port),
 	_cgi(poll),
 	_config(config),
 	_poll(poll),
 	_doneReading(false),
 	_doneWriting(true),
 	_pollHupSet(false),
+	_timeOutSet(false),
 	_request(_cgi, _poll, _socketFd)
 {
 	this->clear();
+	this->resetTimeOut();
 }
 
 ClientHandler::~ClientHandler()
 {
-}
-
-bool	ClientHandler::isSocketFd( int fd )
-{
-	return (fd == _socketFd);
-}
-
-bool	ClientHandler::isEvent( int fd )
-{
-	return (fd == _socketFd || _cgi.isEvent(fd));
 }
 
 static bool	checkIfHeadersAreRead( t_requestData& requestData )
@@ -254,14 +247,26 @@ void	ClientHandler::readFromSocket()
 	_requestData.totalBytesRead += bytesRead;
 }
 
-bool	ClientHandler::doneWithRequest( void )
-{
-	return (_doneReading && _cgi.isRunning() == false);
-}
-
 void	ClientHandler::setHup( void )
 {
-	_pollHupSet = true;
+	if (!_pollHupSet) {
+		std::cout << RED "Client hang-up" RESET "\n";
+		_timeOutSet = true;
+		_pollHupSet = true;
+		this->resetTimeOut();
+	}
+}
+
+void	ClientHandler::setTimeOutResponse( bool cgiRunning )
+{
+	HttpResponse	timeOutResponse;
+
+	if (cgiRunning)
+		timeOutResponse.setError(502.2, "CGI application timeout");
+	else
+		timeOutResponse.setError(408, "Request Timeout");
+	_response = timeOutResponse.buildResponse(_config.getServer("_"));
+	_doneWriting = false;
 }
 
 void	ClientHandler::prepareNextRequest( void )
@@ -289,7 +294,14 @@ void	ClientHandler::clear( void )
 	_requestData.buffer.clear();
 	_requestData.chunkedBuffer.clear();
 	_requestData.prevBuffer.clear();
-	bzero(&_requestData, sizeof(_requestData));
+	_requestData.chunkSize = 0;
+	_requestData.movedHeaders = false;
+	_requestData.readHeaders = false;
+	_requestData.contentLengthSet = false;
+	_requestData.chunkedEncoded = false;
+	_requestData.headerSize = 0;
+	_requestData.contentLength = 0;
+	_requestData.totalBytesRead = 0;
 	_doneWriting = true;
 	_doneReading = false;
 }
@@ -302,16 +314,55 @@ void	ClientHandler::endCgi()
 	_poll.addEvent(_socketFd, POLLOUT);
 }
 
+void	ClientHandler::resetTimeOut( void )
+{
+	_timeOutStart = std::chrono::steady_clock::now();
+}
+
+/**
+ * @brief	Checks if this client has been timed out on the CGI or socket
+ * 			and sets a response message accordingly
+ * 
+ * @param currentTime The time to compare the last interaction to
+ * @return [true] if the client timed out  ---  
+ * @return [false] if the client has not timed out yet
+ */
+bool	ClientHandler::checkTimeOut( serverTime& currentTime )
+{
+	int64_t	timeDifference = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - _timeOutStart).count();
+
+	if ( timeDifference >= REQUEST_TIMEOUT) {
+		std::cout << RED "Request or connection timed out" RESET "\n";
+		bool	cgiRunning = this->isCgiRunning();
+		this->clear();
+		_timeOutSet = true;
+		_doneReading = true;
+		_doneWriting = true;
+		this->setTimeOutResponse(cgiRunning);
+		_poll.removeEvent(_socketFd, POLLIN | POLLRDHUP);
+		_poll.removeEvent(_socketFd, POLLOUT);
+		_poll.addEvent(_socketFd, POLLOUT );
+		this->resetTimeOut();
+		return (true);
+	}
+	return (false);
+}
+
 void	ClientHandler::handleRead( int fd )
 {
+
 	if (_cgi.isEvent(fd)) {
+		this->resetTimeOut();
 		_cgi.handleRead();
 		return ;
 	}
 
-	if (!_doneWriting) // if we are already processing a request we keep the new data in the socket.
+	// If we are already processing a request we keep the new data in the socket
+	// and don't read from it.
+	if (!_doneWriting || _cgi.isRunning())
 		return ;
 
+	this->resetTimeOut();
 	this->readFromSocket();
 
 	// if all of the data we expect has not been read yet we add another event filter
@@ -320,7 +371,7 @@ void	ClientHandler::handleRead( int fd )
 		return ;
 	}
 
-	std::cout << GREEN "Received all data" RESET << std::endl;
+	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
 
 	// the parseRequest should decide if we enter a CGI or not
@@ -333,13 +384,12 @@ void	ClientHandler::handleRead( int fd )
 
 void	ClientHandler::handleWrite( int fd )
 {
-	// std::cout << "Response: " << _response << std::endl;
+	this->resetTimeOut();
+
 	if (fd != _socketFd) {
 		_cgi.handleWrite();
 		return ;
 	}
-
-	std::cout << _response << std::endl;
 
 	size_t	bytesToWrite = WRITE_SIZE;
 	if (bytesToWrite > _response.size())
@@ -357,7 +407,12 @@ void	ClientHandler::handleWrite( int fd )
 		return ;
 	}
 
-	std::cout << RED "Sent all data" RESET << std::endl;
+	std::cout << GREEN "Sent all data" RESET "\n";
+
+	if (_timeOutSet) {
+		_doneWriting = true;
+		return ;
+	}
 
 	// We have sent all data so we can prepare for the next request
 	this->prepareNextRequest();
