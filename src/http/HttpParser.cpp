@@ -134,21 +134,25 @@ void		HttpRequest::parsePostRequest(HttpResponse &response, Server server, std::
 void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
 {
     if (!pathExists(server.getRoot() + _request_URI)) {
-        _poll.addEvent(_socketFd, POLLOUT);
         return (response.setError(204, "No Content"));
     }
-     try {
-        if (pathExists(server.getRoot() +_request_URI) && server.getLocation(_request_URI).getAllowDelete() == false)
+    try {
+        if (server.getLocation(_request_URI).getAllowDelete() == false)
         {
-            _poll.addEvent(_socketFd, POLLOUT);
             return (response.setError(405, "Method Not Allowed"));
         }
     }
     catch (std::exception &e){
+
     }
-    if (std::remove((server.getRoot() + _request_URI).c_str()) != 0)
+    if (std::remove((server.getRoot() + _request_URI).c_str()) == 0) {
+        response.setMessageBodyText("File deleted: " + _request_URI);
+        response.buildResponse(server);
+    }
+    else
         return (response.setError(500, "Internal Server Error"));
 }
+
 /**
  * @brief Check if request line has the right syntax and save the method & URI
  * 

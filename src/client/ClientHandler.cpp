@@ -261,10 +261,12 @@ static t_readState	allRequestDataRead( t_requestData& requestData, Config& confi
 	// We have read everything from the current request.
 	// Store the entire request inside the buffer and move all the other data into prevBuffer
 	auto extraDataIt = requestData.buffer.begin() + requestData.headerSize + requestData.contentLength; // Gets the offset where the data past the request is stored
-	
+
 	requestData.prevBuffer.clear();
-	requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
-	requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	if (requestData.buffer.size() - (requestData.headerSize + requestData.contentLength) > 0) {
+		requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
+		requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	}
 	return (DONE_READING);
 }
 
