@@ -25,14 +25,17 @@
 #define RESET   "\033[0m"
 #define GREEN   "\033[32m"      /* Green */
 
-CgiHandler::CgiHandler( EventPoll& poll ) :
+CgiHandler::CgiHandler( EventPoll& poll, Config& config, int port, std::string& clientAddress ) :
 	_poll(poll),
 	_pipeRead(-1),
 	_pipeWrite(-1),
 	_bytesRead(0),
 	_bytesWrote(0),
 	_doneReading(false),
-	_forkPid(-1)
+	_port(port),
+	_forkPid(-1),
+	_config(config),
+	_clientAddress(clientAddress)
 {
 }
 
@@ -47,6 +50,53 @@ CgiHandler::~CgiHandler()
 	}
 	_poll.removeEvent(_pipeWrite, POLLOUT);
 	_poll.removeEvent(_pipeRead, POLLIN);
+}
+
+static char*	combineEnvironment(char const* key, std::string value)
+{
+	size_t	len1 = strlen(key);
+	size_t	len2 = value.size();
+	char*	str = new char[len1 + len2 + 1];
+
+	for (size_t i = 0; i < len1; i++) {
+		str[i] = key[i];
+	}
+	for (size_t i = len1; i < len1 + len2; i++) {
+		str[i] = value[i - len1];
+	}
+	str[len1 + len2] = '\0';
+	return (str);
+}
+
+std::string	getQueryString(HttpRequest& request)
+{
+	auto index = request.getUri().find("?");
+
+	if (index == std::string::npos)
+		return ("");
+	return (request.getUri().substr(index + 1));
+}
+
+char**	CgiHandler::getEnvironmentVariables( HttpRequest& request, std::string& script )
+{
+	char**	env = new char*[15];
+
+	env[0] = combineEnvironment("CONTENT_LENGTH=", std::to_string(request.getContentLength()));
+	env[1] = combineEnvironment("CONTENT_TYPE=", request.getContentType());
+	env[2] = combineEnvironment("GATEWAY_INTERFACE=CGI/1.1", "");
+	env[3] = combineEnvironment("PATH_INFO=", script);
+	env[4] = combineEnvironment("PATH_TRANSLATED=", script);
+	env[5] = combineEnvironment("QUERY_STRING=", getQueryString(request));
+	env[6] = combineEnvironment("REMOTE_ADDR=", _clientAddress);
+	env[7] = combineEnvironment("REMOTE_HOST=", request.getHost());
+	env[8] = combineEnvironment("REQUEST_METHOD=", (request.getMethod() == GET ? "GET" : "POST"));
+	env[9] = combineEnvironment("SCRIPT_NAME=", script);
+	env[10] = combineEnvironment("SERVER_NAME=", request.getHost());
+	env[11] = combineEnvironment("SERVER_PORT=", std::to_string(_port));
+	env[12] = combineEnvironment("SERVER_PROTOCOL=HTTP/1.1", "");
+	env[13] = combineEnvironment("SERVER_SOFTWARE=", "Twerkin' Server");
+	env[14] = NULL;	
+	return (env);
 }
 
 void	CgiHandler::clear( void )
@@ -112,8 +162,6 @@ void	CgiHandler::handleRead( void )
 	if (currentBytesRead < 0)
 		throw ( std::runtime_error("Failed to read from the CGI") );
 
-	std::cout << "bytes read from cgi: " << currentBytesRead << std::endl;
-
 	_cgiOutput.insert(_cgiOutput.end(), newRead.begin(), newRead.begin() + currentBytesRead);
 	_bytesRead += currentBytesRead;
 }
@@ -166,7 +214,7 @@ void	CgiHandler::handleWrite( void )
  * |        |  pipeFromCgi  |       |
  * |________|  <---------<  |_______|            
  */
-void	CgiHandler::startPythonCgi( std::string script )
+void	CgiHandler::startPythonCgi( HttpRequest& request, std::string script )
 {
 	this->clear();
 	int pipeToCgi[2];
@@ -208,17 +256,23 @@ void	CgiHandler::startPythonCgi( std::string script )
 		// Setup pipes in child process
 		childInitPipes( pipeToCgi, pipeFromCgi );
 
-		// Execute the CGI script
-    	char *env[] = { NULL };
-		execve( PYTHON_PATH, args, env );
+		execve( PYTHON_PATH, args, this->getEnvironmentVariables(request, script) );
 		std::cerr << "Error executing python script" << std::endl;
 		exit( 1 );
 	}
 	else // Parent process
 	{
 		// Setup pipes in parent process
-		parentInitPipes( pipeToCgi, pipeFromCgi);
-		_poll.addEvent(_pipeWrite, POLLOUT);
+		parentInitPipes( pipeToCgi, pipeFromCgi );
+		if (_cgiInput.size() > 0)
+			_poll.addEvent(_pipeWrite, POLLOUT);
+		else {
+			// if we dont have anything to write into the pipe we can close the write side
+			// and start polling for the output right away
+			close(_pipeWrite);
+			_pipeWrite = -1;
+			_poll.addEvent(_pipeRead, POLLIN);
+		}
 	}
 }
 

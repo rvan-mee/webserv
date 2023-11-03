@@ -27,14 +27,6 @@ def count_characters_in_html(env_variables):
     return character_count
 
 if __name__ == "__main__":
-    # Define your environment variables
-    # env_variables = {
-    #     "Variable1": "Value1",
-    #     "Variable2": "Value2",
-    #     "Variable3": "Value3"
-    # }
-
-
     # Call the function to count characters in the HTML content
     env_variables = os.environ
     character_count = count_characters_in_html(env_variables)
@@ -55,5 +47,3 @@ if __name__ == "__main__":
     print("</ul>")
     print("</body>")
     print("</html>")
-    # print(f"Total characters in HTML: {character_count}")
-

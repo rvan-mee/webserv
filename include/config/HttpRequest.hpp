@@ -25,6 +25,10 @@
 #include <CgiHandler.hpp>
 #include <EventPoll.hpp>
 
+class CgiHandler;
+
+enum requestType	{ GET, POST, DELETE };
+
 /**
  * @brief HttpRequest class to parse the request and store the data in the class variables
  * 
@@ -34,7 +38,6 @@ class HttpRequest
 	public:
 		HttpRequest(CgiHandler& cgi, EventPoll& poll, int socketFd) : _cgi(cgi), _poll(poll), _socketFd(socketFd) {}
 
-		enum requestType	{ GET, POST, DELETE };
 		std::string			parseRequestAndGiveResponse(std::vector<char> buffer, Config config, int port);
 		void				isRequestLine(std::string line, HttpResponse &response);
 		void				isHeader(std::string line, HttpResponse &response, Config config, int port);
@@ -49,6 +52,16 @@ class HttpRequest
 		void				parseGetRequest(HttpResponse &response, Server server);
 		void				parsePostRequest(HttpResponse &response, Server server, std::string request);
 		void				parseDeleteRequest(HttpResponse &response, Server server);
+
+		void			setContentLength( long contentLength) { _contentLength = contentLength; };
+
+		requestType		getRequestType( void ) { return(_request_method); };
+		std::string&	getUri( void ) { return(_request_URI); };
+		std::string&	getBody( void ) { return(_message_body); };
+		std::string&	getContentType( void ) { return(_content_type); };
+		std::string&	getHost( void ) { return(_host); };
+		long			getContentLength( void ) { return(_contentLength); };
+
 	private:
 		HttpRequest();
 
@@ -57,6 +70,7 @@ class HttpRequest
 		std::string	_message_body;
 		std::string	_content_type;
 		std::string	_host;
+		long		_contentLength;
 		CgiHandler&	_cgi;
 		EventPoll&	_poll;
 		int			_socketFd;

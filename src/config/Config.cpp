@@ -436,7 +436,7 @@ std::vector<int>& Config::getListen( void )
  * @brief Returns the client_max_body_size of the config.
  * @return unsigned long 
  */
-unsigned long Config::getClientMaxBodySize( void ) const
+long Config::getClientMaxBodySize( void ) const
 {
     return ( this->clientMaxBodySize );
 }

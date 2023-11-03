@@ -14,9 +14,13 @@
 # define CGIHANDLER_HPP
 
 #include <EventPoll.hpp>
+#include <Config.hpp>
+#include <HttpRequest.hpp>
 #include <vector>
 #include <unistd.h>
 #include <string>
+
+class HttpRequest;
 
 class CgiHandler
 {
@@ -26,6 +30,7 @@ class CgiHandler
 		void	parseCgiOutput( void );
 		void	childInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
 		void	parentInitPipes( int pipeToCgi[2], int pipeFromCgi[2] );
+		char**	getEnvironmentVariables( HttpRequest& request, std::string& script );
 
 		EventPoll&			_poll;
 		int					_pipeRead;
@@ -35,10 +40,13 @@ class CgiHandler
 		std::vector<char>	_cgiInput;
 		int					_bytesWrote;
 		bool				_doneReading;
+		int					_port;
 		pid_t				_forkPid;
+		Config&				_config;
+		std::string			_clientAddress;
 
 	public:
-		CgiHandler( EventPoll& poll );
+		CgiHandler( EventPoll& poll, Config& config, int port, std::string& clientAddress );
 		~CgiHandler();
 	
 		void				setWriteBuffer( std::string& buffer );
@@ -52,7 +60,7 @@ class CgiHandler
 		void	clear( void );
 		void	end( void );
 
-		void	startPythonCgi( std::string script );
+		void	startPythonCgi( HttpRequest& request, std::string script );
 };
 
 #endif
