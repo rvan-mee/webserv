@@ -19,7 +19,6 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
 
         // Check if the file is open
         if (file.is_open()) {
-            // You can now read or manipulate the file here if needed.
             try {
                 _cgi.setWriteBuffer(request); // TODO: if you want to give the CGI some info to work with 
                 _cgi.startPythonCgi(*this, server.getLocation(".py").getAlias() + result + ".py");
@@ -34,6 +33,8 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
             file.close(); // Don't forget to close the file when you're done with it.
             return ;
         } else {
+            if (access((server.getLocation(".py").getAlias() + result + ".py").c_str(), F_OK) == 0 && access((server.getLocation(".py").getAlias() + result + ".py").c_str(), R_OK) != 0)
+                return (response.setError(403, "Forbidden"));
             return (response.setError(404, "Not Found"));
         }
     }

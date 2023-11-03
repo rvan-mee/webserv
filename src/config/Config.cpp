@@ -29,7 +29,8 @@
 Config::Config() :
     servers( std::vector<Server>() ),
     listen( std::vector<int>() ),
-    root( std::string() )
+    root( std::string() ),
+    clientMaxBodySize( 1024 * 1024 )
 {
 }
 

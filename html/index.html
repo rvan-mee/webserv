@@ -12,7 +12,6 @@
 <body>
     <div class="content">
         <h1>Webserv</h1>
-        <img src="https://media.giphy.com/media/3o7aDcz6Y0fzWYvU5G/giphy.gif" alt="Twerk" width="300" height="300">
         <p>Code 'n Twerk: Webserver Work</p>
 
         <div class="flex-container">
@@ -46,12 +45,6 @@
                 <p class ="textbox">Expected behaviour:</br>Opens a new page (page1.html)</p>
                 <button type="button" class="buttonCustom" onclick="window.location.href='/html/page1.html';">Run</button>
             </div>
-<!-- 
-            <div class="functionbox">
-                <p class = "titlebox">Test :</br>Basic Form (NWY)</p>
-                <p class ="textbox">Expected behaviour:</br>Opens a new page (page2.html)</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='/html/page2.html';">Run</button>
-            </div> -->
 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br>Upload file (POST) (NWY)</p>
@@ -82,13 +75,13 @@
             <div class="functionbox">
                 <p class = "titlebox">Test :</br> Sleeping CGI (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>CGI Sleeps for certain amount of time</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/cgi-bin/sleep.py';">Run</button>
             </div>
 
             <div class="functionbox">
                 <p class = "titlebox">Test :</br> CGI No Rights (NWY)</p>
                 <p class ="textbox">Expected behaviour:</br>Tries running a cgi that doesn't have exec rights</p>
-                <button type="button" class="buttonCustom" onclick="window.location.href='#';">Run</button>
+                <button type="button" class="buttonCustom" onclick="window.location.href='/cgi-bin/noexec.py';">Run</button>
             </div>
 
             <div class="functionbox">
