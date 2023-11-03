@@ -21,6 +21,7 @@
 #include <unistd.h> // close()
 #include <iostream> 
 #include <algorithm>
+#include <arpa/inet.h>
 
 #include <chrono>
 #include <thread>
@@ -158,7 +159,10 @@ void	HttpServer::initServer( Config &config )
 
 			if ( this->isServerSocket(eventFd) )
 			{
-				int	clientSocket = accept( eventFd, NULL, NULL );
+				sockaddr_in	socketInfo;
+				socklen_t	socketLen = sizeof(socketInfo);
+
+				int	clientSocket = accept( eventFd, (struct sockaddr *)&socketInfo, &socketLen);
 				if ( clientSocket < 0 ) {
 					closeServerSockets();
 					throw ( std::runtime_error( "Failed to accept connection" ) );
@@ -167,9 +171,11 @@ void	HttpServer::initServer( Config &config )
 				/* Add the client socket to the poll list */
 				_poll.addEvent(clientSocket, POLLIN | POLLRDHUP);
 
+				char clientAddress[INET_ADDRSTRLEN];
+				inet_ntop( AF_INET, &socketInfo.sin_addr, clientAddress, INET_ADDRSTRLEN );
 
-				std::cout << GREEN "Accepted a new client" RESET "\n";
-				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config, _socketPortMap.at(eventFd));
+				std::cout << GREEN "Accepted a new client: ip " << clientAddress << RESET "\n";
+				ClientHandler*	newEvent = new ClientHandler(clientSocket, _poll, config, _socketPortMap.at(eventFd), clientAddress);
 				_eventList.push_back(newEvent);
 				continue ;
 			}
@@ -185,12 +191,15 @@ void	HttpServer::initServer( Config &config )
 				if ( events[i].revents & POLLHUP ) {
 					if (_eventList[eventIndex]->isSocketFd(eventFd)) {
 						this->removeClient(eventIndex);
+						continue ;
 					}
 					else { // the POLLHUP is connected to a cgi pipe
-						std::cout << RED "Ending CGI" RESET "\n";
-						_eventList[eventIndex]->endCgi();
+						if (!(events[i].revents & POLLIN)) {
+							std::cout << RED "CGI has quit" RESET "\n";
+							_eventList[eventIndex]->endCgi();
+							continue ;
+						}
 					}
-					continue ;
 				}
 
 				if ( events[i].revents & POLLERR ) {
@@ -228,6 +237,12 @@ void	HttpServer::initServer( Config &config )
 				if ( events[i].revents & POLLOUT ) {
 					std::cout << BLUE "Handling write event" RESET "\n";
 					_eventList[eventIndex]->handleWrite(eventFd);
+
+					if (_eventList[eventIndex]->isDoneWriting() && _eventList[eventIndex]->shouldTerminate()) {
+						std::cout << RED "Closing connection with client" RESET "\n";
+						this->removeClient(eventIndex);
+						continue ;
+					}
 
 					if (_eventList[eventIndex]->isTimedOut() && _eventList[eventIndex]->isDoneWriting()) {
 						std::cout << RED "Removing timed out client" RESET "\n";

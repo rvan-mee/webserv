@@ -60,7 +60,7 @@ class Config
 		std::vector<Server>				servers;
 		std::vector<int>				listen;
 		std::string						root;
-		unsigned long					clientMaxBodySize;
+		long							clientMaxBodySize;
 
 	public:
 		
@@ -99,7 +99,7 @@ class Config
 		std::vector<Server>	&getAllServers( void );
 		std::string			&getRoot( void );
 		std::vector<int>	&getListen( void );
-		unsigned long		getClientMaxBodySize( void ) const;
+		long				getClientMaxBodySize( void ) const;
 
 };
 

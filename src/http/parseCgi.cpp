@@ -21,9 +21,8 @@ void HttpRequest::parseCgiRequest(HttpResponse &response, Server server, bool& i
         if (file.is_open()) {
             try {
                 _cgi.setWriteBuffer(request); // TODO: if you want to give the CGI some info to work with 
-                _cgi.startPythonCgi(server.getLocation(".py").getAlias() + result + ".py");
+                _cgi.startPythonCgi(*this, server.getLocation(".py").getAlias() + result + ".py");
                 isCgiRequest = true;
-                
             }
             catch (std::exception &e)
             {

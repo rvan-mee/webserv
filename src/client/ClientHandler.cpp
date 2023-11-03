@@ -28,16 +28,24 @@
 #define GREEN   "\033[32m"      /* Green */
 #define BLUE    "\033[34m"      /* Blue */
 
-ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port ) :
+typedef enum	e_readState {
+	DONE_READING,
+	BUSY_READING,
+	BODY_TOO_LARGE,
+}				t_readState;
+
+ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int port, char* clientAddress ) :
 	_socketFd(socketFd),
 	_port(port),
-	_cgi(poll),
 	_config(config),
 	_poll(poll),
 	_doneReading(false),
 	_doneWriting(true),
 	_pollHupSet(false),
 	_timeOutSet(false),
+	_terminateAfterResponse(false),
+	_clientAddress(clientAddress),
+	_cgi(poll, config, port, _clientAddress),
 	_request(_cgi, _poll, _socketFd)
 {
 	this->clear();
@@ -46,6 +54,31 @@ ClientHandler::ClientHandler( int socketFd, EventPoll& poll, Config& config, int
 
 ClientHandler::~ClientHandler()
 {
+}
+
+static std::string	getHost( std::vector<char>& buffer)
+{
+	char const*	host = "Host";
+	std::string	value;
+
+	// find the header
+	auto it = std::search(buffer.begin(), buffer.end(), host, host + strlen(host));
+	// skip till ":"
+	for (; it != buffer.end(); it++)
+		if (*it == ':')
+			break ;
+	// skip ": "
+	if (it == buffer.end() || ++it == buffer.end())
+		return ("");
+	if (++it == buffer.end())
+		return ("");
+	// add to the value
+	for (; it != buffer.end() && *it != '\r'; it++) {
+		if (*it == ':') // todo: is this necessary? what if there is no port in the host header?
+			break ;
+		value.push_back(*it);
+	}
+	return (value);
 }
 
 static bool	checkIfHeadersAreRead( t_requestData& requestData )
@@ -58,12 +91,18 @@ static bool	checkIfHeadersAreRead( t_requestData& requestData )
 	if (it != buffer.end()) {
 		requestData.readHeaders = true;
 		requestData.headerSize = it - buffer.begin() + endOfHeaders.size();
+		requestData.host = getHost(buffer);
+		if (requestData.host == "")
+			requestData.host = "_";
 		return (true);
 	}
 	return (false);
 }
 
-static void	setContentLength( t_requestData& requestData )
+/**
+ * @return false if content length is too big else true
+*/
+static bool	setContentLength( t_requestData& requestData, Config& config )
 {
 	std::vector<char>&	buffer = requestData.buffer;
 	const std::string	cLength = "Content-Length:";
@@ -71,13 +110,16 @@ static void	setContentLength( t_requestData& requestData )
 	auto it = std::search(buffer.begin(), buffer.end(), cLength.begin(), cLength.end());
 
 	if (it == buffer.end())
-		return ;
+		return (true);
 	if (it + 16 > buffer.end())
-		return ;
+		return (true);
 
 	int	contentLengthIndex = it - buffer.begin() + cLength.length();
 	requestData.contentLength = atoi(&buffer[contentLengthIndex]);
 	requestData.contentLengthSet = true;
+	if (requestData.contentLength > config.getClientMaxBodySize())
+		return (false);
+	return (true);
 }
 
 static void	moveHeadersIntoBuffer( t_requestData& requestData )
@@ -170,7 +212,7 @@ static void	moveChunk( t_requestData& requestData )
 		buffer.erase(buffer.begin(), buffer.begin() + amountToMove);
 }
 
-static bool	parseChunkEncoding( t_requestData& requestData )
+static t_readState	parseChunkEncoding( t_requestData& requestData )
 {
 	std::vector<char>&		chunkedBuffer = requestData.chunkedBuffer;
 	std::vector<char>&		buffer = requestData.buffer;
@@ -179,7 +221,6 @@ static bool	parseChunkEncoding( t_requestData& requestData )
 	if (requestData.movedHeaders == false) {
 		moveHeadersIntoBuffer(requestData);
 		requestData.movedHeaders = true;
-		// return false;
 	}
 
 	while (buffer.size() > 0 && allChunksRead == false) {
@@ -192,38 +233,41 @@ static bool	parseChunkEncoding( t_requestData& requestData )
 	if (allChunksRead) {
 		buffer.insert(buffer.end(), chunkedBuffer.begin(), chunkedBuffer.end());
 		chunkedBuffer.clear();
-		return ( true );
+		return ( DONE_READING );
 	}
-	return ( false );
+	return ( BUSY_READING );
 }
 
-static bool	allRequestDataRead( t_requestData& requestData )
+static t_readState	allRequestDataRead( t_requestData& requestData, Config& config )
 {
 	if (requestData.readHeaders == false) {
-		if (!checkIfHeadersAreRead(requestData))
-			return (false);
+		if (checkIfHeadersAreRead(requestData) == false)
+			return (BUSY_READING);
 		checkChunkedEncoding(requestData);
-		setContentLength(requestData);
+		if (setContentLength(requestData, config) == false)
+			return (BODY_TOO_LARGE);
 	}
 
 	if (requestData.contentLengthSet == false && requestData.chunkedEncoded == false)
-		return (true);
+		return (DONE_READING);
 
 	if (requestData.chunkedEncoded)
 		return ( parseChunkEncoding(requestData) );
 	
 	// if the request is not chunk encoded we check if we have read everything according to the set content-length
 	if (!(requestData.totalBytesRead - requestData.headerSize >= requestData.contentLength))
-		return (false); // We have not read everything from this request
+		return (BUSY_READING); // We have not read everything from this request
 
 	// We have read everything from the current request.
 	// Store the entire request inside the buffer and move all the other data into prevBuffer
 	auto extraDataIt = requestData.buffer.begin() + requestData.headerSize + requestData.contentLength; // Gets the offset where the data past the request is stored
-	
+
 	requestData.prevBuffer.clear();
-	requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
-	// requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
-	return (true);
+	if (requestData.buffer.size() - (requestData.headerSize + requestData.contentLength) > 0) {
+		requestData.prevBuffer.insert(requestData.prevBuffer.begin(), extraDataIt, requestData.buffer.end()); //  Insert all the extra data into prevBuffer
+		requestData.buffer.erase(extraDataIt); // Remove the extra data from the buffer
+	}
+	return (DONE_READING);
 }
 
 void	ClientHandler::readFromSocket()
@@ -265,7 +309,7 @@ void	ClientHandler::setTimeOutResponse( bool cgiRunning )
 		timeOutResponse.setError(502, "502.1 CGI application timeout");
 	else
 		timeOutResponse.setError(408, "Request Timeout");
-	_response = timeOutResponse.buildResponse(_config.getServer("_", _port));
+	_response = timeOutResponse.buildResponse(_config.getServer(_requestData.host, _port));
 	_doneWriting = false;
 }
 
@@ -283,6 +327,7 @@ void	ClientHandler::prepareNextRequest( void )
 	_requestData.headerSize = 0;
 	_requestData.contentLength = 0;
 	_requestData.totalBytesRead = _requestData.prevBuffer.size();
+	_requestData.host.clear();
 	_doneWriting = true;
 	_doneReading = false;
 }
@@ -302,6 +347,7 @@ void	ClientHandler::clear( void )
 	_requestData.headerSize = 0;
 	_requestData.contentLength = 0;
 	_requestData.totalBytesRead = 0;
+	_requestData.host.clear();
 	_doneWriting = true;
 	_doneReading = false;
 }
@@ -367,19 +413,27 @@ void	ClientHandler::handleRead( int fd )
 
 	// if all of the data we expect has not been read yet we add another event filter
 	// and wait more more data to be available for reading
-	if (!allRequestDataRead(_requestData)) {
+	t_readState	state;
+
+	state = allRequestDataRead(_requestData, _config);
+	if (state == BUSY_READING)
+		return;
+	else if (state == BODY_TOO_LARGE) {
+		HttpResponse	bodyTooLarge;
+
+		bodyTooLarge.setError(413, "Content Too Large");
+		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host, _port));
+		_poll.addEvent(_socketFd, POLLOUT);
+		_terminateAfterResponse = true;
+		_doneWriting = false;
 		return ;
 	}
 
 	std::cout << GREEN "Received all data" RESET "\n";
 	// all data has been read, now we can parse and prepare a response
-
-	// the parseRequest should decide if we enter a CGI or not
-	// Go into CGI or create a response
+	_request.setContentLength(_requestData.buffer.size() - _requestData.headerSize);
 	_response = _request.parseRequestAndGiveResponse(_requestData.buffer, _config, _port);
 	_doneWriting = false;
-	// std::cout << "Response: " << std::endl;
-	// std::cout << _response << std::endl;
 }
 
 void	ClientHandler::handleWrite( int fd )
@@ -422,8 +476,17 @@ void	ClientHandler::handleWrite( int fd )
 
 	// We check if we already have fully read a new request we can keep the write event inside the poll check
 	// otherwise we need to remove it from the queue
-	if (allRequestDataRead(_requestData))
+	t_readState	state = allRequestDataRead(_requestData, _config);
+	if (state == DONE_READING)
 		_doneWriting = false;
-	else
+	else if (state == BUSY_READING)
 		_poll.removeEvent(_socketFd, POLLOUT);
+	else if (state == BODY_TOO_LARGE) {
+		HttpResponse	bodyTooLarge;
+
+		bodyTooLarge.setError(413, "Content Too Large");
+		_response = bodyTooLarge.buildResponse(_config.getServer(_requestData.host, _port));
+		_terminateAfterResponse = true;
+		_doneWriting = true;
+	}
 }

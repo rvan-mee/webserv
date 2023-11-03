@@ -35,6 +35,7 @@ typedef struct	s_requestData {
 	int					headerSize;
 	int					contentLength;
 	int					totalBytesRead;
+	std::string			host;
 }	t_requestData;
 
 
@@ -52,7 +53,6 @@ class ClientHandler
 
 		int					_socketFd;
 		int					_port;
-		CgiHandler			_cgi;
 		t_requestData		_requestData;
 		std::string			_response;
 		Config&				_config;
@@ -61,11 +61,14 @@ class ClientHandler
 		bool				_doneWriting;
 		bool				_pollHupSet;
 		bool				_timeOutSet;
+		bool				_terminateAfterResponse;
+		std::string			_clientAddress;
+		CgiHandler			_cgi;
 		serverTime			_timeOutStart;
 		HttpRequest			_request;
 
 	public:
-		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port );
+		ClientHandler( int socketFd, EventPoll& poll, Config& config, int port, char* clientAddress );
 		~ClientHandler();
 
 		int		getSocketFd( void ) { return (_socketFd); };
@@ -75,6 +78,7 @@ class ClientHandler
 		bool	isCgiRunning( void ) { return (_cgi.isRunning()); } ;
 		bool	isSocketFd( int fd ) { return (fd == _socketFd); };
 		bool	isEvent( int fd ) { return (fd == _socketFd || _cgi.isEvent(fd)); };
+		bool	shouldTerminate( void ) { return (_terminateAfterResponse); };
 		bool	getHangup( void ) { return (_pollHupSet); }
 
 		bool	checkTimeOut( serverTime& currentTime );
