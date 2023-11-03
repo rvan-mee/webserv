@@ -152,9 +152,12 @@ void		HttpRequest::parseDeleteRequest(HttpResponse &response, Server server)
         }
     }
     catch (std::exception &e){
+        if (!pathExists(server.getRoot() +_request_URI))
+            return (response.setError(404, "Not Found"));
     }
     if (std::remove((server.getRoot() + _request_URI).c_str()) == 0) {
-        std::cout << "File deleted successfully: " << _request_URI << std::endl;
+        response.setMessageBodyText("File deleted: " + _request_URI);
+        response.buildResponse(server);
     } else {
         return (response.setError(500, "Internal Server Error"));
     }
